@@ -8,7 +8,12 @@
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
+        <input data-jscolor="" id="color-picker" value="70cccc" onchange=changeColor(this.jscolor)>
+        <input type="range" id="weight-slider" min="1" max="20" 
+        step="any" value="1">
+
         <script src="sketch.js"></script>
+        <script src="jscolor.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.3/p5.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
     </body>

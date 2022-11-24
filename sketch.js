@@ -1,6 +1,19 @@
 let socket
-let current = {}
+let current = {
+    color: "#70cccc",
+    weight: 1
+}
 let pg  //缓存画布内容
+
+const weightSlider = document.getElementById('weight-slider')
+weightSlider.addEventListener('change', changeWeight)
+
+function changeWeight(e) { 
+    current.weight = e.target.value
+}
+function changeColor(color) {
+    current.color = `${color}`
+}
 
 function setup() { 
     createCanvas(windowWidth, windowHeight)
@@ -11,8 +24,15 @@ function setup() {
     //socket连接
     socket = io.connect('http://localhost:8080')
     socket.on('drawing', (data) => {
-        // console.log('sending mouse: ' + data.x0 + ' ' + data.y0 + ' ' + data.x1 + ' ' + data.y1);
-        pg.line(data.x0 * width, data.y0 * height, data.x1 * width, data.y1 * height)
+        // console.log('sending mouse: ' + data.x0 + ' ' + data.y0 + ' ' + data.x1 + ' ' + data.y1);    
+        pg.stroke(data.color)
+        pg.strokeWeight(data.weight)
+        pg.line(
+            data.x0 * width,
+            data.y0 * height,
+            data.x1 * width,
+            data.y1 * height
+        )
     })
 }
 
@@ -35,6 +55,8 @@ function windowResized() {
 }
 
 function drawLine(x0, y0, x1, y1) {
+    pg.stroke(current.color)
+    pg.strokeWeight(current.weight)
     pg.line(x0, y0, x1, y1)
     //画线时将2个点传递给服务器
     // console.log('sending mouse: '+x0+' '+y0+' '+x1+' '+y1);
@@ -45,6 +67,8 @@ function drawLine(x0, y0, x1, y1) {
         y0: y0 / height,
         x1: x1 / width, 
         y1: y1 / height,
+        color: current.color,
+        weight:current.weight
     })
 }
 
@@ -55,10 +79,13 @@ function mousePressed() {
     }
 }
 
-function mouseDragged() {
+function mouseDragged(e) {
     if (mouseButton === LEFT) { 
-        drawLine(current.x, current.y, mouseX, mouseY)
-        current.x = mouseX
-        current.y = mouseY
+        if (e.target.tagName === 'CANVAS') {
+            //当鼠标拖动的对象是画布而不是其它控件时才开始绘制
+            drawLine(current.x, current.y, mouseX, mouseY)
+            current.x = mouseX
+            current.y = mouseY
+        }
     }
 }
