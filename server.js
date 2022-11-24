@@ -32,7 +32,6 @@ function handleRequest(req,res) {
     fs.readFile(__dirname + pathname, (err, data) => { 
         if (err) {
             res.writeHead(500)
-            console.log(err);
             return res.end('Error loading ' + pathname)
         }
 
@@ -56,7 +55,7 @@ io.sockets.on('connection', (socket) => {
     console.log('we have a new client' + socket.id);
     
     socket.on('mouse', (data) => {
-        console.log('sending mouse: '+data.x0+' '+data.y0+' '+data.x1+' '+data.y1);
+        // console.log('sending mouse: '+data.x0+' '+data.y0+' '+data.x1+' '+data.y1);
         //广播给所有人点的信息，但不包括自己
         socket.broadcast.emit('drawing', data)
     })
