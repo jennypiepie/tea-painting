@@ -1,60 +1,63 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import io from "socket.io-client";
+import { useState } from "react";
 import { useSocketStore } from "@/stores/useSocketStore";
+import { useUserStore } from "@/stores/useUserStore";
+
+const dateFormat = (time: Date) => {
+    // const day = time.getDate();
+    // const month = time.getMonth();
+    // const year = time.getFullYear();
+    const hour = time.getHours() < 10 ? `0${time.getHours()}` : time.getHours();
+    const minute = time.getMinutes() < 10 ? `0${time.getMinutes()}` : time.getMinutes();
+    const res = `${hour}:${minute}`
+    return res;
+}
 
 export default function Chat() {
-    const [username, setUsername] = useState("");
     const [message, setMessage] = useState("");
-    const { socket, setSocket, setIsConnected } = useSocketStore();
-
-    useEffect(() => {
-        socketInitialzer();
-    }, [])
-
-    const socketInitialzer = async () => {
-        const clientIO = io(`${process.env.NEXT_PUBLIC_URL}`, {
-            path: '/api/socket/io',
-            addTrailingSlash: false,
-        });
-
-        clientIO.on("connect", () => {
-            setIsConnected(true);
-        });
-
-        clientIO.on("disconnect", () => {
-            setIsConnected(false);
-            console.log(clientIO.id);
-        });
-
-        clientIO.on('receive-message', (data: any) => {
-            // console.log(data);
-            const { username, message } = data;
-            setMessage(`${username}: ${message}`)
-        })
-
-        setSocket(clientIO);
-    }
+    const { messageList, sendMessage } = useSocketStore();
+    const { name } = useUserStore();
 
     const handleSubmit = () => {
-        !!socket && socket.emit('send-message', {
-            username,
-            message: 'hi'
-        });
+        const tString = dateFormat(new Date());
+        !!message &&
+            sendMessage({
+                username: name,
+                message: message,
+                time: tString,
+            })
+        setMessage('');
     }
 
-    return (<>
-        <span>username</span>
-        <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-        />
-        <div>
-            <button onClick={handleSubmit}>Submit</button>
+    return (
+        <div className="
+        absolute right-2 bottom-2 
+        w-1/5 h-3/4 min-w-[220px] box-border
+        p-2 z-10 bg-white rounded-lg
+        flex flex-col justify-between
+        ">
+            <div className="h-10 bg-slate-300">Chat</div>
+            <div className="flex-auto">
+                {messageList.map((item, index) => {
+                    return <div key={index}>{item}</div>
+                })}
+            </div>
+            <div className="
+            h-10 w-full p-2 flex justify-between
+            rounded-2xl bg-stone-800 
+            ">
+                <div className="flex-auto px-2">
+                    <input
+                        className="w-full bg-stone-800 text-white outline-none"
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                    />
+                </div>
+                <div className="w-[50px] bg-green-300 ml-2 rounded-lg text-center align-middle">
+                    <button onClick={handleSubmit}>Send</button>
+                </div>
+            </div>
         </div>
-        <br />
-        <div>Chat</div>
-        <p>{message}</p>
-    </>)
+    )
 }
