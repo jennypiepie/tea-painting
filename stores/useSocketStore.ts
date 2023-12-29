@@ -1,22 +1,26 @@
-import { io } from "socket.io-client";
+import { Socket, io } from "socket.io-client";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
 
-// interface ISocketStore {
-//     socket: Socket;
-//     isConnected: boolean;
-//     messageList: string[];
-// }
+interface ISocketStore {
+    socket: Socket;
+    isConnected: boolean;
+    messageList: string[];
+    rooms: string[],
+    paths: any[];
+}
 
 const clientIO = io(`${process.env.NEXT_PUBLIC_URL}`, {
     path: '/api/socket/io',
     addTrailingSlash: false,
 });
 
-const initialState = {
+const initialState: ISocketStore = {
     socket: clientIO,
     isConnected: false,
     messageList: [],
+    rooms: [],
+    paths: [],
 }
 
 const mutations = (set: any, get: any) => {
@@ -30,8 +34,13 @@ const mutations = (set: any, get: any) => {
         .on('receive_message', (data: any) => {
             const { username, message, time } = data;
             const newList = [...get().messageList, `${username || 'visitor'}: ${message}————${time}`];
-            // console.log(data);
             set({ messageList: newList });
+        })
+        .on('get_rooms', (rooms: string[]) => {
+            set({ rooms: rooms });
+        })
+        .on('user_draw', (path) => {
+            set({ paths: [...get().paths, path] });
         })
 
     return {
@@ -39,7 +48,6 @@ const mutations = (set: any, get: any) => {
             clientIO.emit('send_message', {
                 ...data
             })
-
         },
     };
 };

@@ -1,20 +1,21 @@
 'use client';
 import { useSocketStore } from '@/stores/useSocketStore';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-const getRandomString = () => {
-    const result = Math.random().toString(36).slice(-5) + Date.now().toString(36).slice(-3);
-    return result;
-};
 
 export default function Room() {
     const { socket } = useSocketStore();
     const router = useRouter();
+
     const createRoom = () => {
-        const roomId = getRandomString();
-        socket.emit("create_room", roomId);
-        router.push(`/room/${roomId}`);
+        socket.emit("create_room");
     }
+    useEffect(() => {
+        socket.on('created', (roomId: string) => {
+            router.push(`/room/${roomId}`);
+        })
+    }, [])
     return (<>
         <div className="
         absolute top-1/2 left-1/2 -translate-x-[50%] -translate-y-[50%]

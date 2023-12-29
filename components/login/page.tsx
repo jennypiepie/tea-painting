@@ -8,13 +8,18 @@ import { useState } from "react";
 export default function Login() {
 
     const { name, setUser } = useUserStore();
-    const { socket } = useSocketStore();
+    const { socket, rooms, } = useSocketStore();
     const [roomId, setRoomId] = useState('');
+    const [noRoom, setNoRoom] = useState(false);
     const router = useRouter();
 
     const joinRoom = () => {
-        socket.emit("join_room", roomId);
-        router.push(`/room/${roomId}`);
+        if (rooms.includes(roomId)) {
+            setNoRoom(false);
+            router.push(`/room/${roomId}`);
+        } else {
+            setNoRoom(true);
+        }
     }
 
     return (
@@ -24,6 +29,7 @@ export default function Login() {
             <span>roomId: </span>
             <input className="border" value={roomId} onChange={(e) => setRoomId(e.target.value)} />
             <div onClick={joinRoom}>Join</div>
+            {noRoom && <div>The roomId does not exist.<Link href='/room'>create a new room?</Link></div>}
         </div>
     )
 }
