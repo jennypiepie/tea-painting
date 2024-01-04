@@ -6,3 +6,12 @@
   height: 100%;
   backgroud-color:black;
 }
+
+@layer utilities{
+  .absolute-center{
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+}

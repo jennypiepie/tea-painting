@@ -1,7 +1,7 @@
 'use client';
 
-import Canvas from "@/components/canvas/page";
-import Chat from "@/components/chat/page";
+import Canvas from "@/components/canvas";
+import Chat from "@/components/chat";
 import { useSocketStore } from "@/stores/useSocketStore";
 import { useEffect } from "react";
 

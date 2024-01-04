@@ -1,4 +1,4 @@
-import Login from "@/components/login/page";
+import StartBtn from "@/components/startBtn";
 
 export default async function Home() {
   const user = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/test`);
@@ -6,6 +6,6 @@ export default async function Home() {
 
   return (<>
     {!!data && <div>TEA{data[0].username}</div>}
-    <Login />
+    <StartBtn />
   </>)
 }

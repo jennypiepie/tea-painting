@@ -2,14 +2,25 @@ import { Socket, io } from "socket.io-client";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
 
+interface Point {
+    x: number,
+    y: number
+}
+
+interface Operation {
+    type: string;
+    points: Point[];
+    color: string;
+    lineWidth: number;
+}
+
 interface ISocketStore {
     socket: Socket;
     isConnected: boolean;
     messageList: string[];
     rooms: string[],
-    paths: any[];
+    operations: Operation[];
 }
-
 const clientIO = io(`${process.env.NEXT_PUBLIC_URL}`, {
     path: '/api/socket/io',
     addTrailingSlash: false,
@@ -20,7 +31,7 @@ const initialState: ISocketStore = {
     isConnected: false,
     messageList: [],
     rooms: [],
-    paths: [],
+    operations: [],
 }
 
 const mutations = (set: any, get: any) => {
@@ -39,8 +50,8 @@ const mutations = (set: any, get: any) => {
         .on('get_rooms', (rooms: string[]) => {
             set({ rooms: rooms });
         })
-        .on('user_draw', (path) => {
-            set({ paths: [...get().paths, path] });
+        .on('user_draw', (operation) => {
+            set({ operations: [...get().operations, operation] });
         })
 
     return {

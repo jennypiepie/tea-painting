@@ -51,14 +51,14 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIo) => {
                 if (rooms.includes(roomId) && ![...socket.rooms].includes(roomId)) {
                     socket.join(roomId);
                 } else {
-                    //not exist
+                    socket.emit('room_exists');
                 }
             });
 
-            socket.on("draw", (path) => {
+            socket.on("draw", (operation) => {
                 socket.broadcast
                     .to(getRoomId())
-                    .emit("user_draw", path);
+                    .emit("user_draw", operation);
             })
         })
 
