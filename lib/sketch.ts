@@ -15,6 +15,7 @@ class Sketch {
     preview: HTMLCanvasElement;
     width: number;
     height: number;
+    scale: number;
     socket: Socket;
     isDrawing: boolean;
     ctx: CanvasRenderingContext2D;
@@ -25,19 +26,16 @@ class Sketch {
         this.canvas = document.getElementById('canvas')! as HTMLCanvasElement;
         this.preview = this.canvas.cloneNode() as HTMLCanvasElement;
         this.canvas.parentElement!.appendChild(this.preview);
-        this.ctx = this.canvas.getContext('2d')!;
-        this.preCtx = this.preview.getContext('2d')!;
         this.width = this.canvas.width;
         this.height = this.canvas.height;
+        this.scale = 0.5;
+        this.ctx = this.canvas.getContext('2d')!;
+        this.preCtx = this.preview.getContext('2d')!;
         this.ctx.lineJoin = 'round';
+        this.preCtx.lineJoin = 'round';
         this.socket = socket;
         this.isDrawing = false;
         this.points = [];
-        this.ctx.lineWidth = 10;
-        this.preCtx.lineWidth = 10;
-        this.preCtx.strokeStyle = 'rgba(0,0,0,0.5)';
-        this.ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-
 
         this.preview.addEventListener('mousedown', (e) => {
             this.mouseDown(e)
@@ -81,6 +79,7 @@ class Sketch {
     }
 
     draw(points: Point[], ctx = this.ctx) {
+        if (points.length < 2) return;
         ctx.beginPath();
         ctx.moveTo(points[0].x, points[0].y);
         for (let i = 1; i < points.length; i++) {
@@ -103,12 +102,16 @@ class Sketch {
 
     getPoint(e: MouseEvent) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const x = (e.clientX - rect.left) / this.scale;
+        const y = (e.clientY - rect.top) / this.scale;
         return {
             x,
             y
         }
+    }
+
+    setScale(scale: number) {
+        this.scale = scale;
     }
 
     clear() {

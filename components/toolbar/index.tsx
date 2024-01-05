@@ -16,9 +16,10 @@ export default function Toolbar() {
     }
 
     return (
-        <div className="absolute top-1/3 left-10 rounded-lg overflow-hidden">
+        <div className="absolute top-1/3 left-10 rounded-lg overflow-hidden z-10">
             <Picker />
-            <input type="range" min="1" max="20" value={width} onChange={(e) => setPenWidth(Number(e.target.value))} />
+            <input type="range" min="1" max="40" value={width} onChange={(e) => setPenWidth(Number(e.target.value))} />
+            <span>{width}</span>
             {/* <ToolbarItem />
             <ToolbarItem />
             <ToolbarItem />

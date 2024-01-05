@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useSocketStore } from "@/stores/useSocketStore";
-import { useUserStore } from "@/stores/useUserStore";
+import { useAsyncStore } from "@/hooks/useAsyncStore";
+import { usePersistStore } from "@/stores/usePersistStore";
 
 const dateFormat = (time: Date) => {
     // const day = time.getDate();
@@ -17,7 +18,7 @@ const dateFormat = (time: Date) => {
 export default function Chat() {
     const [message, setMessage] = useState("");
     const { messageList, sendMessage } = useSocketStore();
-    const { name } = useUserStore();
+    const name = useAsyncStore(usePersistStore, state => state.name);
 
     const handleSubmit = () => {
         const tString = dateFormat(new Date());

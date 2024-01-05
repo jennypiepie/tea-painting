@@ -3,6 +3,12 @@ import { NextApiRequest } from "next";
 import { Server as ServerIO } from "socket.io";
 import { NextApiResponseServerIo } from "@/types";
 
+interface RoomInfo {
+    roomId: string;
+    width: number;
+    height: number;
+}
+
 const getRandomString = () => {
     const result = Math.random().toString(36).slice(-5) + Date.now().toString(36).slice(-3);
     return result;
@@ -18,7 +24,7 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIo) => {
         });
         res.socket.server.io = io;
 
-        const rooms: string[] = [];
+        const rooms: RoomInfo[] = [];
 
         io.on('connection', (socket) => {
             const getRoomId = () => {
@@ -36,19 +42,23 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIo) => {
                 io.to(getRoomId()).emit("receive_message", msg);
             })
 
-            socket.on("create_room", () => {
+            socket.on("create_room", (size) => {
                 let roomId: string;
                 do {
                     roomId = getRandomString();
-                } while (rooms.includes(roomId));
-                rooms.push(roomId);
+                } while (rooms.some(room => room.roomId === roomId));
+                rooms.push({
+                    roomId,
+                    width: size.width,
+                    height: size.height
+                });
                 io.emit('get_rooms', rooms);
                 socket.emit('created', roomId);
             });
 
             socket.on("join_room", (roomId) => {
                 if (getRoomId() !== socket.id) socket.leave(getRoomId());
-                if (rooms.includes(roomId) && ![...socket.rooms].includes(roomId)) {
+                if (rooms.some(room => room.roomId === roomId)) {
                     socket.join(roomId);
                 } else {
                     socket.emit('room_exists');

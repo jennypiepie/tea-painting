@@ -2,6 +2,12 @@ import { Socket, io } from "socket.io-client";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
 
+interface RoomInfo {
+    roomId: string;
+    width: number;
+    height: number;
+}
+
 interface Point {
     x: number,
     y: number
@@ -18,7 +24,7 @@ interface ISocketStore {
     socket: Socket;
     isConnected: boolean;
     messageList: string[];
-    rooms: string[],
+    rooms: RoomInfo[],
     operations: Operation[];
 }
 const clientIO = io(`${process.env.NEXT_PUBLIC_URL}`, {
@@ -47,7 +53,7 @@ const mutations = (set: any, get: any) => {
             const newList = [...get().messageList, `${username || 'visitor'}: ${message}————${time}`];
             set({ messageList: newList });
         })
-        .on('get_rooms', (rooms: string[]) => {
+        .on('get_rooms', (rooms: RoomInfo[]) => {
             set({ rooms: rooms });
         })
         .on('user_draw', (operation) => {
