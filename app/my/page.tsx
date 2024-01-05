@@ -42,14 +42,6 @@ export default function My() {
             <input className="border" value={roomId} onChange={(e) => setRoomId(e.target.value)} />
             <div onClick={joinRoom}>Join</div>
             {noRoom && <div>The roomId does not exist.<Link href='/room'>create a new room?</Link></div>}
-            {/* <div className="
-                absolute-center
-                w-32 h-10 bg-cyan-300 text-center leading-10
-                rounded-full cursor-pointer"
-                onClick={createRoom}
-            >
-                create room
-            </div> */}
             <ul>
                 <li onClick={() => createRoom(1920, 1080)}>1920*1080</li>
                 <li onClick={() => createRoom(1080, 1920)}>1080*1920</li>
