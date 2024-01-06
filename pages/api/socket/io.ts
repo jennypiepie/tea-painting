@@ -65,10 +65,10 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIo) => {
                 }
             });
 
-            socket.on("draw", (operation) => {
+            socket.on("execute", (execution) => {
                 socket.broadcast
                     .to(getRoomId())
-                    .emit("user_draw", operation);
+                    .emit("execute_receive", execution);
             })
         })
 

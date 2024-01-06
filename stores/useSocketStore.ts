@@ -13,11 +13,11 @@ interface Point {
     y: number
 }
 
-interface Operation {
-    type: string;
-    points: Point[];
-    color: string;
-    lineWidth: number;
+export interface Execution {
+    type: "Stroke" | "Eraser" | "Undo" | "Redo";
+    points?: Point[];
+    color?: string;
+    lineWidth?: number;
 }
 
 interface ISocketStore {
@@ -25,7 +25,7 @@ interface ISocketStore {
     isConnected: boolean;
     messageList: string[];
     rooms: RoomInfo[],
-    operations: Operation[];
+    execution: Execution | null;
 }
 const clientIO = io(`${process.env.NEXT_PUBLIC_URL}`, {
     path: '/api/socket/io',
@@ -37,7 +37,7 @@ const initialState: ISocketStore = {
     isConnected: false,
     messageList: [],
     rooms: [],
-    operations: [],
+    execution: null,
 }
 
 const mutations = (set: any, get: any) => {
@@ -54,10 +54,10 @@ const mutations = (set: any, get: any) => {
             set({ messageList: newList });
         })
         .on('get_rooms', (rooms: RoomInfo[]) => {
-            set({ rooms: rooms });
+            set({ rooms });
         })
-        .on('user_draw', (operation) => {
-            set({ operations: [...get().operations, operation] });
+        .on('execute_receive', (execution) => {
+            set({ execution });
         })
 
     return {

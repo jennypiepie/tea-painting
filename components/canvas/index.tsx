@@ -20,29 +20,29 @@ const debounce = (func: Function, delay: number) => {
 
 export default function Canvas() {
     const sketchRef = useRef<Sketch>();
-    const { socket, operations } = useSocketStore();
+    const { socket, execution } = useSocketStore();
     const { initSketch } = useSketchStore();
     const width = useAsyncStore(usePersistStore, state => state.width);
     const height = useAsyncStore(usePersistStore, state => state.height);
     const containerRef = useRef<HTMLDivElement>(null);
-    let scale2 = 0.5;
+    let scale = 0.5;
 
     const Scale = (delta: number) => {
         const maxScale = 5;
         const minScale = 0.1;
         if (delta > 0) {
-            scale2 *= 1.1;
-            if (scale2 > maxScale) {
-                scale2 = maxScale;
+            scale *= 1.05;
+            if (scale > maxScale) {
+                scale = maxScale;
             }
         } else {
-            scale2 *= 0.9;
-            if (scale2 < minScale) {
-                scale2 = minScale;
+            scale *= 0.97;
+            if (scale < minScale) {
+                scale = minScale;
             }
         }
-        containerRef.current!.style.transform = `translate(-50%, -50%) scale(${scale2.toFixed(1)})`;
-        sketchRef.current!.setScale(Number(scale2.toFixed(1)));
+        containerRef.current!.style.transform = `translate(-50%, -50%) scale(${scale.toFixed(1)})`;
+        sketchRef.current!.setScale(Number(scale.toFixed(1)));
     }
     const onScale = debounce(Scale, 10);
 
@@ -51,16 +51,23 @@ export default function Canvas() {
             sketchRef.current = new Sketch(socket);
             initSketch(sketchRef.current)
         }
-        return () => sketchRef.current?.clear();
+        return () => sketchRef.current?.destory();
     }, [width, height])
 
     useEffect(() => {
-        if (operations.length !== 0 && !!sketchRef.current) {
-            const { points, color, lineWidth } = operations[operations.length - 1];
-            sketchRef.current.setPen({ color, lineWidth });
-            sketchRef.current.draw(points);
+        if (execution !== null && !!sketchRef.current) {
+            const { points, color, lineWidth, type } = execution;
+            if (type === "Undo") {
+                sketchRef.current.undo();
+            } else if (type === "Redo") {
+                sketchRef.current.redo();
+            } else {
+                sketchRef.current.setPen({ type, color, lineWidth });
+                sketchRef.current.draw(points!);
+                sketchRef.current.pushUndo(execution);
+            }
         }
-    }, [operations.length])
+    }, [execution])
 
     return (<>
         <div
