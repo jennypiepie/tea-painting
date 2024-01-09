@@ -45,18 +45,18 @@ export default function Toolbar() {
     }, [state])
 
     return (
-        <div className="absolute top-1/3 left-10 rounded-lg overflow-hidden z-10">
+        <div className="absolute top-2 left-10 rounded-lg overflow-hidden z-10 select-none">
             <Picker />
-            <input type="range" min="1" max="40" value={width} onChange={(e) => setPenWidth(Number(e.target.value))} />
-            <span>{width}</span>
-            <div className="w-8 h-8"
-                style={{ background: state === "Eraser" ? 'green' : 'white' }}
+            <div>
+                <input type="range" min="1" max="40" value={width} onChange={(e) => setPenWidth(Number(e.target.value))} />
+                <span>{width}</span>
+            </div>
+            <div className={`w-8 h-8 ${state === "Eraser" ? 'bg-green-400' : 'bg-white'}`}
                 onClick={setEraser}
             >
                 eraser
             </div>
-            <div className="w-8 h-8"
-                style={{ background: state === "Drag" ? 'green' : 'white' }}
+            <div className={`w-8 h-8 ${state === "Drag" ? 'bg-green-400' : 'bg-white'}`}
                 onClick={setDrag}
             >
                 Drag
@@ -66,6 +66,7 @@ export default function Toolbar() {
                 <span className="bg-orange-200 ml-2" onClick={redo}>redo</span>
             </div>
             <div className="w-8 h-8 bg-orange-200" onClick={() => sketch?.clear()}>Clear</div>
+            <div className="w-8 h-8 bg-orange-200">Save</div>
             {/* <ToolbarItem />
             <ToolbarItem />
             <ToolbarItem />
