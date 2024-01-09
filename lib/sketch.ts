@@ -31,8 +31,9 @@ class Sketch {
     offset: Point;
     isMouseDown: boolean;
     dpr: number;
-    undoStack: any[];
-    redoStack: any[];
+    undoStack: Execution[];
+    redoStack: Execution[];
+    bgColor: string;
 
     constructor(socket: Socket) {
         this.canvas = document.getElementById('canvas')! as HTMLCanvasElement;
@@ -57,6 +58,7 @@ class Sketch {
         this.preCtx.scale(this.dpr, this.dpr);
         this.undoStack = [];
         this.redoStack = [];
+        this.bgColor = 'rgba(0,0,0,1.0)';
 
         this.preview.addEventListener('mousedown', (e) => {
             this.mouseDown(e)
@@ -194,15 +196,10 @@ class Sketch {
 
     undo() {
         if (this.undoStack.length > 0 && this.redoStack.length < 5) {
-            this.redoStack.push(this.undoStack.pop());
+            this.redoStack.push(this.undoStack.pop()!);
             this.clear();
             this.undoStack.forEach((exe) => {
-                this.setPen({
-                    type: exe.type,
-                    color: exe.color,
-                    lineWidth: exe.lineWidth
-                })
-                this.draw(exe.points);
+                this.execute(exe);
             })
         }
     }
@@ -211,28 +208,36 @@ class Sketch {
         if (this.undo.length > 0) {
             this.clear();
             this.undoStack.forEach((exe) => {
-                this.setPen({
-                    type: exe.type,
-                    color: exe.color,
-                    lineWidth: exe.lineWidth
-                })
-                this.draw(exe.points);
+                this.execute(exe);
             })
         }
         if (this.redoStack.length > 0) {
-            const exe = this.redoStack.pop();
-            this.setPen({
-                type: exe.type,
-                color: exe.color,
-                lineWidth: exe.lineWidth
-            })
-            this.draw(exe.points);
+            const exe = this.redoStack.pop()!;
+            this.execute(exe);
             this.undoStack.push(exe);
         }
     }
 
+    execute(exe: Execution) {
+        if (exe.type === 'BgColor') {
+            this.setBg(exe.color);
+        } else {
+            this.setPen({
+                type: exe.type as "Stroke" | "Eraser",
+                color: exe.color,
+                lineWidth: exe.lineWidth
+            })
+            this.draw(exe.points!);
+        }
+    }
+
+    setBg(color?: string) {
+        this.bgColor = color || this.ctx.strokeStyle as string;
+        this.container.style.backgroundColor = this.bgColor;
+    }
 
     clear() {
+        this.container.style.backgroundColor = '#ffffff';
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 

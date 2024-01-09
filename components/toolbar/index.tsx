@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Picker from "../picker";
 import ToolbarItem from "./toolbarItem";
 import { useSketchStore } from "@/stores/useSketchStore";
@@ -22,12 +22,9 @@ export default function Toolbar() {
         sketch?.setPen({ lineWidth });
     }
 
-    const setDrag = () => {
-        sketch?.state === "Drag" ? setState("Draw") : setState("Drag");
-    }
-
-    const setEraser = () => {
-        sketch?.state === "Eraser" ? setState("Draw") : setState("Eraser");
+    const stateChange = (state: SketchState) => {
+        setState(state);
+        sketch?.changeState(state);
     }
 
     const undo = () => {
@@ -40,38 +37,55 @@ export default function Toolbar() {
         socket.emit('execute', { type: 'Redo' });
     }
 
-    useEffect(() => {
-        sketch?.changeState(state);
-    }, [state])
+    const setBg = () => {
+        sketch?.setBg();
+        socket.emit('execute', { type: 'BgColor', color: sketch?.bgColor });
+        sketch?.pushUndo({ type: 'BgColor', color: sketch?.bgColor });
+    }
 
-    return (
-        <div className="absolute top-2 left-10 rounded-lg overflow-hidden z-10 select-none">
+    return (<>
+        <div className="absolute z-10 select-none top-2 right-6">
             <Picker />
             <div>
                 <input type="range" min="1" max="40" value={width} onChange={(e) => setPenWidth(Number(e.target.value))} />
                 <span>{width}</span>
             </div>
-            <div className={`w-8 h-8 ${state === "Eraser" ? 'bg-green-400' : 'bg-white'}`}
-                onClick={setEraser}
+        </div>
+        <div className="absolute top-10 left-10 rounded-lg overflow-hidden text-sm text-white p-1 bg-stone-800">
+            <div className={`w-8 h-8 rounded ${state === "Draw" ? 'bg-green-400' : 'bg-stone-800'}`}
+                onClick={() => stateChange('Draw')}
+            >
+                pen
+            </div>
+            <div className={`w-8 h-8 rounded ${state === "Draw" ? 'bg-green-400' : 'bg-stone-800'}`}
+            // onClick={() => stateChange('Draw')}
+            >
+                absorb
+            </div>
+            <div className={`w-8 h-8 rounded ${state === "Eraser" ? 'bg-green-400' : 'bg-stone-800'}`}
+                onClick={() => stateChange('Eraser')}
             >
                 eraser
             </div>
-            <div className={`w-8 h-8 ${state === "Drag" ? 'bg-green-400' : 'bg-white'}`}
-                onClick={setDrag}
+            <div className={`w-8 h-8 rounded ${state === "Drag" ? 'bg-green-400' : 'bg-stone-800'}`}
+                onClick={() => stateChange('Drag')}
             >
                 Drag
             </div>
-            <div>
-                <span className="bg-orange-200" onClick={undo}>undo</span>
-                <span className="bg-orange-200 ml-2" onClick={redo}>redo</span>
+            <div className={"w-8 h-8 bg-stone-800"}
+                onClick={setBg}
+            >
+                BG
             </div>
-            <div className="w-8 h-8 bg-orange-200" onClick={() => sketch?.clear()}>Clear</div>
-            <div className="w-8 h-8 bg-orange-200">Save</div>
+            <div className="w-8 h-8 bg-stone-800" onClick={undo}>undo</div>
+            <div className="w-8 h-8 bg-stone-800" onClick={redo}>redo</div>
+            <div className="w-8 h-8 bg-stone-800" onClick={() => sketch?.clear()}>Clear</div>
+            <div className="w-8 h-8 bg-stone-800">Save</div>
             {/* <ToolbarItem />
             <ToolbarItem />
             <ToolbarItem />
             <ToolbarItem />
             <ToolbarItem /> */}
         </div>
-    )
+    </>)
 }

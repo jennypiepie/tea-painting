@@ -14,7 +14,7 @@ interface Point {
 }
 
 export interface Execution {
-    type: "Stroke" | "Eraser" | "Undo" | "Redo";
+    type: "Stroke" | "Eraser" | "Undo" | "Redo" | "BgColor";
     points?: Point[];
     color?: string;
     lineWidth?: number;

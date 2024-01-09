@@ -34,7 +34,7 @@ export default function Chat() {
     return (
         <div className="
         absolute right-2 bottom-2 
-        w-1/5 h-3/4 min-w-[220px] box-border
+        w-64 h-72 min-w-[220px] box-border
         p-2 z-10 bg-white rounded-lg
         flex flex-col justify-between border
         ">
