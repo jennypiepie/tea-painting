@@ -1,17 +1,25 @@
 'use client';
+import SVG from "@/components/svgs";
 
 interface IToolbarProps {
-    onClick?: () => void;
+    type: string;
+    scale?: number;
+    selected?: boolean;
+    onClick: (e: any) => void;
 }
-export default function ToolbarItem({ onClick }: IToolbarProps) {
+
+export default function ToolbarItem({ onClick, type, scale = 0.8, selected = false }: IToolbarProps) {
 
     return (
         <div
-            className="w-10 h-10 bg-slate-600 flex 
-            justify-center items-center text-white"
-            onClick={onClick}
+            className={`w-8 h-8 rounded flex justify-center items-center ${selected ? 'bg-green-400' : "bg-stone-800"}`}
+            onClick={(e) => onClick(e)}
         >
-            1
+            {SVG[type as keyof typeof SVG]({
+                style: {
+                    width: '100%', height: '100%', fill: selected ? 'black' : 'white', transform: `scale(${scale})`
+                }
+            })}
         </div>
     )
 }

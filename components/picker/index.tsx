@@ -1,8 +1,9 @@
 'use client';
 
 import { useSketchStore } from "@/stores/useSketchStore";
-import { useReducer } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { RgbaStringColorPicker } from "react-colorful";
+import eventEmitter from "@/lib/eventEmitter";
 
 interface ColorState {
     rgba: string,
@@ -46,6 +47,7 @@ function colorReducer(state: ColorState, { type, payload }: ColorAction) {
 export default function Picker() {
     const { sketch } = useSketchStore();
     const [state, dispatch] = useReducer(colorReducer, initialState);
+    const [width, setWidth] = useState(1);
 
     const changeColor = (type: keyof ColorState, value: string) => {
         if (type !== 'hex' && type !== 'rgba' && !isRgbaColor(value)) return;
@@ -65,7 +67,7 @@ export default function Picker() {
     }
 
     const isRgbaColor = (rgba: string) => {
-        return !isNaN(Number(rgba)) && Number(rgba) < 255;
+        return !isNaN(Number(rgba)) && Number(rgba) < 256;
     }
 
     const colorConvert = (type: keyof ColorState, value: string) => {
@@ -82,9 +84,9 @@ export default function Picker() {
             if (value.length === 3) {
                 value = value[0] + value[0] + value[1] + value[1] + value[2] + value[2];
             }
-            const r = parseInt(value.slice(1, 3), 16);
-            const g = parseInt(value.slice(3, 5), 16);
-            const b = parseInt(value.slice(5, 7), 16);
+            const r = parseInt(value.slice(0, 2), 16);
+            const g = parseInt(value.slice(2, 4), 16);
+            const b = parseInt(value.slice(4, 6), 16);
             return {
                 rgba: `rgba(${r},${g},${b},${arr[3]})`,
                 r,
@@ -95,7 +97,7 @@ export default function Picker() {
             }
         } else if (type === 'rgba') {
             const arr = value.replace(/^rgba?\(|\s+|\)$/g, '').split(',').map(Number);
-            const alpha = Math.round((arr[3] || 1) * 100);
+            const alpha = Math.round(arr[3] * 100);
             const hex = arr.slice(0, -1).map(item => item.toString(16).padStart(2, '0')).join('');
             return {
                 rgba: value,
@@ -118,7 +120,7 @@ export default function Picker() {
             }
             const hex = arr.slice(0, -1).map(item => item.toString(16).padStart(2, '0')).join('');
             return {
-                rgba: `rgba(${arr[0]},${arr[1]},${arr[2]},${arr[3]})`,
+                rgba: `rgba(${arr.join(', ')})`,
                 r: arr[0],
                 g: arr[1],
                 b: arr[2],
@@ -146,16 +148,36 @@ export default function Picker() {
         )
     }
 
+    const setPenWidth = (lineWidth: number) => {
+        setWidth(lineWidth);
+        sketch?.setPen({ lineWidth });
+    }
+
+    useEffect(() => {
+        eventEmitter.on('colorChange', changeColor);
+        return () => {
+            eventEmitter.off('colorChange', changeColor);
+        }
+    }, [])
+
     return (
         <div className="top-2 left-2">
             <RgbaStringColorPicker color={state.rgba} onChange={(color) => changeColor('rgba', color)} />
-            <div className="bg-stone-800 px-3 pb-4 w-60 rounded-b-xl">
-                <div className="flex justify-between text-white text-sm">
+            <div className="bg-stone-800 px-3 pb-4 w-60 rounded-b-xl text-white text-sm cursor-default">
+                <div className="flex justify-between">
                     {Object.keys(state).map(key => colorItem(key as keyof ColorState))}
                 </div>
                 <div className="h-8 w-8 absolute pr-4 top-40 right-4 rounded-xl"
                     style={{ backgroundColor: `rgb(${state.r},${state.g},${state.b})` }}
                 />
+                <div className="flex justify-between mt-2">
+                    <input
+                        type="range"
+                        min="1" max="40"
+                        value={width}
+                        onChange={(e) => setPenWidth(Number(e.target.value))} />
+                    <span>{`${width}px`}</span>
+                </div>
             </div>
         </div>
     )

@@ -1,5 +1,6 @@
 import { Execution } from "@/stores/useSocketStore";
 import { Socket } from "socket.io-client";
+import eventEmitter from "./eventEmitter";
 
 interface Point {
     x: number,
@@ -7,12 +8,12 @@ interface Point {
 }
 
 interface PenConfig {
-    type?: "Stroke" | "Eraser";
+    type?: "Draw" | "Eraser";
     color?: string;
     lineWidth?: number;
 }
 
-export type SketchState = "Draw" | "Drag" | "Eraser";
+export type SketchState = "Draw" | "Drag" | "Eraser" | "Straw";
 
 class Sketch {
     canvas: HTMLCanvasElement;
@@ -34,6 +35,7 @@ class Sketch {
     undoStack: Execution[];
     redoStack: Execution[];
     bgColor: string;
+    strawColor: string;
 
     constructor(socket: Socket) {
         this.canvas = document.getElementById('canvas')! as HTMLCanvasElement;
@@ -59,6 +61,7 @@ class Sketch {
         this.undoStack = [];
         this.redoStack = [];
         this.bgColor = 'rgba(0,0,0,1.0)';
+        this.strawColor = 'rgba(255,255,255,1.0)';
 
         this.preview.addEventListener('mousedown', (e) => {
             this.mouseDown(e)
@@ -84,6 +87,7 @@ class Sketch {
 
     mouseMove(e: MouseEvent) {
         if (!this.isMouseDown) return;
+        const { x, y } = this.getPoint(e);
         if (this.state === "Drag") {
             this.offset = {
                 x: e.x - this.dragStart.x + this.tranlated.x,
@@ -93,13 +97,11 @@ class Sketch {
                 `translate(${this.offset.x}px, ${this.offset.y}px) scale(${this.scale})`;
         }
         if (this.state === "Draw") {
-            const { x, y } = this.getPoint(e);
             this.points.push({ x, y });
             this.preCtx.clearRect(0, 0, this.preview.width, this.preview.height);
             this.draw(this.points, this.preCtx);
         }
         if (this.state === "Eraser") {
-            const { x, y } = this.getPoint(e);
             this.points.push({ x, y });
             this.draw(this.points);
         }
@@ -115,13 +117,28 @@ class Sketch {
         }
     }
 
+    cursorMove(e: MouseEvent) {
+        const { x, y } = this.getPoint(e);
+        const pixel = this.ctx.getImageData(x * this.dpr, y * this.dpr, 1, 1);
+        const arr = pixel.data;
+        const a = Math.round(arr[3] / 255 * 100) / 100;
+        this.strawColor = `rgba(${arr[0]},${arr[1]},${arr[2]},${a})`;
+        eventEmitter.emit('straw', this.strawColor);
+    }
+
+    cursorUp(e: MouseEvent) {
+        if ((e.target as HTMLElement).id !== 'cursor' || this.strawColor === 'rgba(0,0,0,0)') return;
+        eventEmitter.emit('colorChange', 'rgba', this.strawColor);
+        this.setPen({ color: this.strawColor });
+    }
+
     setPen(conf: PenConfig) {
         const {
-            type = this.state === "Eraser" ? "Eraser" : "Stroke",
+            type,
             color = this.ctx.strokeStyle,
             lineWidth = this.ctx.lineWidth
         } = conf;
-        this.state = type === "Eraser" ? "Eraser" : "Draw";
+        type && (this.state = type);
         this.ctx.strokeStyle = color;
         this.ctx.lineWidth = lineWidth;
         this.preCtx.strokeStyle = color;
@@ -151,13 +168,13 @@ class Sketch {
             this.draw(this.points);
         }
         this.socket.emit('execute', {
-            type: this.state === "Draw" ? "Stroke" : "Eraser",
+            type: this.state,
             points: this.points,
             color: this.ctx.strokeStyle,
             lineWidth: this.ctx.lineWidth
         });
         this.pushUndo({
-            type: this.state === "Draw" ? "Stroke" : "Eraser",
+            type: this.state as "Draw" | "Eraser",
             points: [...this.points],
             color: this.ctx.strokeStyle as string,
             lineWidth: this.ctx.lineWidth
@@ -192,6 +209,11 @@ class Sketch {
 
     changeState(state: SketchState) {
         this.state = state;
+        if (state === 'Straw') {
+            document.body.style.cursor = 'none';
+        } else {
+            document.body.style.cursor = '';
+        }
     }
 
     undo() {
@@ -221,9 +243,11 @@ class Sketch {
     execute(exe: Execution) {
         if (exe.type === 'BgColor') {
             this.setBg(exe.color);
+        } else if (exe.type === 'Clear') {
+            this.clear();
         } else {
             this.setPen({
-                type: exe.type as "Stroke" | "Eraser",
+                type: exe.type as "Draw" | "Eraser",
                 color: exe.color,
                 lineWidth: exe.lineWidth
             })
@@ -232,8 +256,10 @@ class Sketch {
     }
 
     setBg(color?: string) {
+        if (this.ctx.strokeStyle === this.bgColor) return false;
         this.bgColor = color || this.ctx.strokeStyle as string;
         this.container.style.backgroundColor = this.bgColor;
+        return true;
     }
 
     clear() {

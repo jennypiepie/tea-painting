@@ -62,8 +62,10 @@ export default function Canvas() {
             } else if (type === "Redo") {
                 sketchRef.current.redo();
             } else {
-                if (type === 'BgColor') {
+                if (type === "BgColor") {
                     sketchRef.current.setBg(color);
+                } else if (type === "Clear") {
+                    sketchRef.current.clear();
                 } else {
                     sketchRef.current.setPen({ type, color, lineWidth });
                     sketchRef.current.draw(points!);

@@ -36,7 +36,7 @@ export default function Chat() {
         absolute right-2 bottom-2 
         w-64 h-72 min-w-[220px] box-border
         p-2 z-10 bg-white rounded-lg
-        flex flex-col justify-between border
+        flex flex-col justify-between border cursor-default
         ">
             <div className="h-10 bg-slate-300">Chat</div>
             <div className="flex-auto">
