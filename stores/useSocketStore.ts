@@ -50,7 +50,7 @@ const mutations = (set: any, get: any) => {
         })
         .on('receive_message', (data: any) => {
             const { username, message, time } = data;
-            const newList = [...get().messageList, `${username || 'visitor'}: ${message}————${time}`];
+            const newList = [...get().messageList, `${username || ''},${message},${time}`];
             set({ messageList: newList });
         })
         .on('get_rooms', (rooms: RoomInfo[]) => {

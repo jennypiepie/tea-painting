@@ -53,21 +53,31 @@ export default function Toolbar() {
         sketch?.pushUndo({ type: 'Clear' });
     }
 
+    const save = () => {
+        const dataUrl = sketch?.save()!;
+        const el = document.createElement('a');
+        el.href = dataUrl;
+        el.download = 'download';
+
+        const event = new MouseEvent('click');
+        el.dispatchEvent(event);
+    }
+
     return (<>
         {state === 'Straw' && <Cursor point={point} />}
         <div className="absolute z-10 select-none top-2 right-6">
             <Picker />
         </div>
         <div className="absolute top-10 left-10 rounded-lg overflow-hidden text-sm text-white p-1 bg-stone-800 select-none z-10 cursor-pointer">
-            <ToolbarItem type="drag" onClick={() => stateChange('Drag')} selected={state === "Drag"} />
+            <ToolbarItem type="drag" onClick={() => stateChange('Drag')} selected={state === "Drag"} scale={0.7} />
             <ToolbarItem type="draw" onClick={() => stateChange('Draw')} selected={state === "Draw"} />
-            <ToolbarItem type="eraser" onClick={() => stateChange('Eraser')} selected={state === "Eraser"} />
-            <ToolbarItem type="straw" onClick={(e) => straw(e.clientX, e.clientY)} selected={state === "Straw"} />
+            <ToolbarItem type="eraser" onClick={() => stateChange('Eraser')} selected={state === "Eraser"} scale={0.7} />
+            <ToolbarItem type="straw" onClick={(e) => straw(e.clientX, e.clientY)} selected={state === "Straw"} scale={0.7} />
             <ToolbarItem type="bg" onClick={setBg} />
             <ToolbarItem type="undo" onClick={undo} />
             <ToolbarItem type="redo" onClick={redo} />
             <ToolbarItem type="clear" onClick={clear} />
-            {/* <ToolbarItem type="save" /> */}
+            <ToolbarItem type="save" onClick={save} scale={0.7} />
         </div>
     </>)
 }

@@ -246,25 +246,45 @@ class Sketch {
         } else if (exe.type === 'Clear') {
             this.clear();
         } else {
+            const preState = this.state;
+            const prePen = {
+                color: this.ctx.strokeStyle as string,
+                lineWidth: this.ctx.lineWidth
+            }
             this.setPen({
                 type: exe.type as "Draw" | "Eraser",
                 color: exe.color,
                 lineWidth: exe.lineWidth
             })
             this.draw(exe.points!);
+            this.setPen(prePen);
+            this.state = preState;
         }
     }
 
     setBg(color?: string) {
-        if (this.ctx.strokeStyle === this.bgColor) return false;
+        if (!color && this.ctx.strokeStyle === this.bgColor) return false;
         this.bgColor = color || this.ctx.strokeStyle as string;
-        this.container.style.backgroundColor = this.bgColor;
+        this.canvas.style.backgroundColor = this.bgColor;
         return true;
     }
 
     clear() {
-        this.container.style.backgroundColor = '#ffffff';
+        this.canvas.style.backgroundColor = '#ffffff';
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    save() {
+        const imageData = this.ctx.getImageData(0, 0, this.width, this.height);
+        const copy = this.canvas.cloneNode() as HTMLCanvasElement;
+        const copyCtx = copy.getContext('2d')!;
+
+        copyCtx.fillStyle = this.bgColor;
+        copyCtx.putImageData(imageData, 0, 0);
+        copyCtx.globalCompositeOperation = 'destination-over';
+        copyCtx.fillRect(0, 0, this.width, this.height);
+
+        return copy.toDataURL();
     }
 
     destory() {

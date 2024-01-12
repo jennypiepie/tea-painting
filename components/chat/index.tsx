@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSocketStore } from "@/stores/useSocketStore";
 import { useAsyncStore } from "@/hooks/useAsyncStore";
 import { usePersistStore } from "@/stores/usePersistStore";
+import ChatItem from "./chatItem";
 
 const dateFormat = (time: Date) => {
     // const day = time.getDate();
@@ -19,6 +20,7 @@ export default function Chat() {
     const [message, setMessage] = useState("");
     const { messageList, sendMessage } = useSocketStore();
     const name = useAsyncStore(usePersistStore, state => state.name);
+    const contextRef = useRef<HTMLDivElement>(null);
 
     const handleSubmit = () => {
         const tString = dateFormat(new Date());
@@ -31,18 +33,20 @@ export default function Chat() {
         setMessage('');
     }
 
+    useEffect(() => {
+        contextRef.current!.scrollTop = contextRef.current!.scrollHeight;
+    }, [messageList.length])
+
     return (
         <div className="
         absolute right-2 bottom-2 
-        w-64 h-72 min-w-[220px] box-border
+        w-64 h-72 box-border
         p-2 z-10 bg-white rounded-lg
         flex flex-col justify-between border cursor-default
         ">
-            <div className="h-10 bg-slate-300">Chat</div>
-            <div className="flex-auto">
-                {messageList.map((item, index) => {
-                    return <div key={index}>{item}</div>
-                })}
+            <div className="h-10 border-b-2 border-stone-800 font-bold">Chat</div>
+            <div className="flex-auto overflow-auto m-1" ref={contextRef}>
+                {messageList.map((item, index) => <ChatItem message={item} key={index} isSelf={item.split(',')[0] === name} />)}
             </div>
             <div className="
             h-10 w-full p-2 flex justify-between
@@ -55,8 +59,8 @@ export default function Chat() {
                         onChange={(e) => setMessage(e.target.value)}
                     />
                 </div>
-                <div className="w-[50px] bg-green-300 ml-2 rounded-lg text-center align-middle">
-                    <button onClick={handleSubmit}>Send</button>
+                <div className="w-[50px] bg-green-400 ml-2 rounded-lg text-center">
+                    <button className="text-sm font-bold" onClick={handleSubmit}>Send</button>
                 </div>
             </div>
         </div>

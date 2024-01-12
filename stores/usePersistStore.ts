@@ -13,12 +13,9 @@ export const usePersistStore = create<IPersistStore>()(persist(
     (set) => ({
         width: 1920,
         height: 1080,
-        name: 'visitor',
+        name: '',
         setUser: (name: string) => set({ name }),
         setSize: (width: number, height: number) => set(() => {
-            // const clientWidth = document.body.clientWidth;
-            // const clientHeight = document.body.clientHeight;
-
             return {
                 width,
                 height
@@ -27,6 +24,6 @@ export const usePersistStore = create<IPersistStore>()(persist(
     }),
     {
         name: 'persist-storage',
-        storage: createJSONStorage(() => localStorage),
+        storage: createJSONStorage(() => sessionStorage),
     }
 ))
