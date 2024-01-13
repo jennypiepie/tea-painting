@@ -48,6 +48,7 @@ class Sketch {
         this.ctx = this.canvas.getContext('2d')!;
         this.preCtx = this.preview.getContext('2d')!;
         this.ctx.lineJoin = this.preCtx.lineJoin = 'round';
+        this.ctx.lineCap = this.preCtx.lineCap = 'round';
         this.socket = socket;
         this.points = [];
         this.state = 'Draw';

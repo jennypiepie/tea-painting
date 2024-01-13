@@ -1,39 +1,49 @@
 'use client';
+import Auth from "@/components/auth";
 import { usePersistStore } from "@/stores/usePersistStore";
 import { useSocketStore } from "@/stores/useSocketStore";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useEffect } from 'react';
 
-export default function My() {
-    const { rooms, socket } = useSocketStore();
-    const { setSize } = usePersistStore();
+function My() {
+    const { socket } = useSocketStore();
+    const { setRoom } = usePersistStore();
 
     const [roomId, setRoomId] = useState('');
     const [noRoom, setNoRoom] = useState(false);
     const router = useRouter();
 
     const createRoom = (width: number, height: number) => {
-        !!setSize && setSize(width, height);
         socket.emit("create_room", { width, height });
     }
 
     const joinRoom = () => {
-        const room = rooms.find(room => room.roomId === roomId);
-        if (room) {
-            setNoRoom(false);
-            !!setSize && setSize(room.width, room.height);
-            router.push(`/room/${roomId}`);
-        } else {
-            setNoRoom(true);
-        }
+        socket.emit("join_room", roomId);
     }
 
     useEffect(() => {
-        socket.on('created', (roomId: string) => {
-            router.push(`/room/${roomId}`);
-        })
+        const roomCreated = (res: any) => {
+            setRoom(res.width, res.height, res.roomId);
+            router.push(`/room/${res.roomId}`);
+        }
+
+        const roomJoined = (res: any) => {
+            if (res.exist) {
+                setNoRoom(false);
+                setRoom(res.width, res.height, res.roomId);
+                router.push(`/room/${res.roomId}`);
+            } else {
+                setNoRoom(true);
+            }
+        }
+        socket.on('created', roomCreated);
+        socket.on('room_exist', roomJoined);
+
+        return () => {
+            socket.off('created', roomCreated);
+            socket.off('room_exist', roomJoined);
+        }
     }, [])
 
     return (
@@ -41,7 +51,7 @@ export default function My() {
             <span>roomId: </span>
             <input className="border" value={roomId} onChange={(e) => setRoomId(e.target.value)} />
             <div onClick={joinRoom}>Join</div>
-            {noRoom && <div>The roomId does not exist.<Link href='/room'>create a new room?</Link></div>}
+            {noRoom && <div>The roomId does not exist</div>}
             <ul>
                 <li onClick={() => createRoom(1920, 1080)}>1920*1080</li>
                 <li onClick={() => createRoom(1080, 1920)}>1080*1920</li>
@@ -50,3 +60,5 @@ export default function My() {
         </div>
     )
 }
+
+export default Auth(My);
