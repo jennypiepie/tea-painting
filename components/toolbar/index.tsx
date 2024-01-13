@@ -73,7 +73,8 @@ export default function Toolbar() {
             <ToolbarItem type="draw" onClick={() => stateChange('Draw')} selected={state === "Draw"} />
             <ToolbarItem type="eraser" onClick={() => stateChange('Eraser')} selected={state === "Eraser"} scale={0.7} />
             <ToolbarItem type="straw" onClick={(e) => straw(e.clientX, e.clientY)} selected={state === "Straw"} scale={0.7} />
-            <ToolbarItem type="bg" onClick={setBg} />
+            <ToolbarItem type="bucket" onClick={() => stateChange('Bucket')} selected={state === "Bucket"} />
+            <ToolbarItem type="bg" onClick={setBg} scale={0.7} />
             <ToolbarItem type="undo" onClick={undo} />
             <ToolbarItem type="redo" onClick={redo} />
             <ToolbarItem type="clear" onClick={clear} />

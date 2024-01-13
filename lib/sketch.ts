@@ -1,6 +1,7 @@
 import { Execution } from "@/stores/useSocketStore";
 import { Socket } from "socket.io-client";
 import eventEmitter from "./eventEmitter";
+import { rgba2arr, hex2rgba } from '../utils/colorConvert';
 
 interface Point {
     x: number,
@@ -13,7 +14,7 @@ interface PenConfig {
     lineWidth?: number;
 }
 
-export type SketchState = "Draw" | "Drag" | "Eraser" | "Straw";
+export type SketchState = "Draw" | "Drag" | "Eraser" | "Straw" | "Bucket";
 
 class Sketch {
     canvas: HTMLCanvasElement;
@@ -45,7 +46,7 @@ class Sketch {
         this.width = this.canvas.width;
         this.height = this.canvas.height;
         this.scale = 0.5;
-        this.ctx = this.canvas.getContext('2d')!;
+        this.ctx = this.canvas.getContext('2d', { willReadFrequently: true, })!;
         this.preCtx = this.preview.getContext('2d')!;
         this.ctx.lineJoin = this.preCtx.lineJoin = 'round';
         this.ctx.lineCap = this.preCtx.lineCap = 'round';
@@ -73,9 +74,37 @@ class Sketch {
         this.preview.addEventListener('mouseup', (e) => {
             this.mouseUp(e)
         })
+
+        this.preview.addEventListener("click", (e) => {
+            this.click(e);
+        });
+    }
+
+    click(e: MouseEvent) {
+        if (this.state === "Bucket") {
+            const { x, y } = this.getPoint(e);
+            let arr = [];
+            if ((this.ctx.strokeStyle as string).startsWith("#")) {
+                arr = rgba2arr(hex2rgba(this.ctx.strokeStyle as string));
+            } else {
+                arr = rgba2arr(this.ctx.strokeStyle as string);
+            }
+            this.fill(x * this.dpr, y * this.dpr, arr);
+            this.socket.emit('execute', {
+                type: 'Bucket',
+                point: { x: x * this.dpr, y: y * this.dpr },
+                colorArr: arr,
+            });
+            this.pushUndo({
+                type: 'Bucket',
+                point: { x: x * this.dpr, y: y * this.dpr },
+                colorArr: arr,
+            })
+        }
     }
 
     mouseDown(e: MouseEvent) {
+        if (this.state === "Bucket") return;
         if (this.state === "Drag") {
             this.dragStart = { x: e.x, y: e.y };
         }
@@ -148,8 +177,8 @@ class Sketch {
 
     draw(points: Point[], ctx = this.ctx) {
         if (points.length < 2) return;
-        const drawColor = this.ctx.strokeStyle;
         if (this.state === "Eraser") {
+            this.ctx.save();
             this.ctx.globalCompositeOperation = "destination-out";
             this.ctx.strokeStyle = "rgba(0,0,0,1.0)";
         }
@@ -159,8 +188,7 @@ class Sketch {
             ctx.lineTo(points[i].x, points[i].y);
         }
         ctx.stroke();
-        this.ctx.globalCompositeOperation = "source-over";
-        this.ctx.strokeStyle = drawColor;
+        this.ctx.restore();
     }
 
     end() {
@@ -184,12 +212,14 @@ class Sketch {
     }
 
     pushUndo(exe: Execution) {
-        const { type, points, color, lineWidth } = exe;
+        const { type, points, color, lineWidth, point, colorArr } = exe;
         this.undoStack.push({
             type,
             points,
             color,
-            lineWidth
+            lineWidth,
+            point,
+            colorArr
         });
         this.redoStack.length = 0;
     }
@@ -246,19 +276,18 @@ class Sketch {
             this.setBg(exe.color);
         } else if (exe.type === 'Clear') {
             this.clear();
+        } else if (exe.type === 'Bucket') {
+            this.fill(exe.point!.x, exe.point!.y, exe.colorArr!);
         } else {
             const preState = this.state;
-            const prePen = {
-                color: this.ctx.strokeStyle as string,
-                lineWidth: this.ctx.lineWidth
-            }
+            this.ctx.save();
             this.setPen({
                 type: exe.type as "Draw" | "Eraser",
                 color: exe.color,
                 lineWidth: exe.lineWidth
             })
             this.draw(exe.points!);
-            this.setPen(prePen);
+            this.ctx.restore();
             this.state = preState;
         }
     }
@@ -287,6 +316,99 @@ class Sketch {
 
         return copy.toDataURL();
     }
+
+    fill(x: number, y: number, replacementColor: number[], targetColor: number[] = [0, 0, 0, 0]) {
+        const imageData = this.ctx.getImageData(0, 0, this.width, this.height);
+        const data = imageData.data;
+        const width = imageData.width;
+        const height = imageData.height;
+        const stack = [[x, y]];
+        const getColorIndex = (x: number, y: number) => (y * width + x) * 4;
+
+        const isColorMatch = (color1: number[], color2: number[]) => {
+            for (let i = 0; i < 3; i++) {
+                if (color1[i] !== color2[i]) {
+                    return false;
+                }
+            }
+            return true;
+        };
+
+        const setColor = (x: number, y: number, color: number[]) => {
+            const index = getColorIndex(x, y);
+            data[index] = color[0];
+            data[index + 1] = color[1];
+            data[index + 2] = color[2];
+            data[index + 3] = color[3];
+        };
+
+        while (stack.length > 0) {
+            const [currentX, currentY] = stack.pop()!;
+            const currentIndex = getColorIndex(currentX, currentY);
+            const currentColor = [
+                data[currentIndex],
+                data[currentIndex + 1],
+                data[currentIndex + 2],
+                data[currentIndex + 3],
+            ];
+            if (isColorMatch(currentColor, targetColor)) {
+                setColor(currentX, currentY, replacementColor);
+                if (currentX > 0) {
+                    const leftColorIndex = getColorIndex(currentX - 1, currentY);
+                    const leftColor = [
+                        data[leftColorIndex],
+                        data[leftColorIndex + 1],
+                        data[leftColorIndex + 2],
+                        data[leftColorIndex + 3],
+                    ];
+                    if (isColorMatch(leftColor, targetColor)) {
+                        stack.push([currentX - 1, currentY]);
+                    }
+                }
+
+                if (currentX < width - 1) {
+                    const rightColorIndex = getColorIndex(currentX + 1, currentY);
+                    const rightColor = [
+                        data[rightColorIndex],
+                        data[rightColorIndex + 1],
+                        data[rightColorIndex + 2],
+                        data[rightColorIndex + 3],
+                    ];
+                    if (isColorMatch(rightColor, targetColor)) {
+                        stack.push([currentX + 1, currentY]);
+                    }
+                }
+
+                if (currentY > 0) {
+                    const topColorIndex = getColorIndex(currentX, currentY - 1);
+                    const topColor = [
+                        data[topColorIndex],
+                        data[topColorIndex + 1],
+                        data[topColorIndex + 2],
+                        data[topColorIndex + 3],
+                    ];
+                    if (isColorMatch(topColor, targetColor)) {
+                        stack.push([currentX, currentY - 1]);
+                    }
+                }
+
+                if (currentY < height - 1) {
+                    const bottomColorIndex = getColorIndex(currentX, currentY + 1);
+                    const bottomColor = [
+                        data[bottomColorIndex],
+                        data[bottomColorIndex + 1],
+                        data[bottomColorIndex + 2],
+                        data[bottomColorIndex + 3],
+                    ];
+                    if (isColorMatch(bottomColor, targetColor)) {
+                        stack.push([currentX, currentY + 1]);
+                    }
+                }
+            }
+        }
+        this.ctx.putImageData(imageData, 0, 0);
+    }
+
 
     destory() {
         this.preview.removeEventListener('mousedown', (e) => {

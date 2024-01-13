@@ -72,6 +72,20 @@ const Bucket = (props: SVGProps<SVGSVGElement>) => (
     </svg>
 )
 
+const Bg = (props: SVGProps<SVGSVGElement>) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        xmlSpace="preserve"
+        width={800}
+        height={800}
+        viewBox="0 0 512 512"
+        {...props}
+    >
+        <path d="M490.667 213.333H192c-11.797 0-21.333 9.557-21.333 21.333V448c0 11.776 9.536 21.333 21.333 21.333h298.667c11.797 0 21.333-9.557 21.333-21.333V234.667c0-11.776-9.536-21.334-21.333-21.334z" />
+        <path d="M341.333 170.667V64c0-11.776-9.536-21.333-21.333-21.333H21.333C9.536 42.667 0 52.224 0 64v213.333c0 11.776 9.536 21.333 21.333 21.333H128v-64c0-35.285 28.715-64 64-64h149.333z" />
+    </svg>
+)
+
 const Undo = (props: SVGProps<SVGSVGElement>) => (
     <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -143,7 +157,8 @@ const SVG = {
     eraser: Eraser,
     drag: Drag,
     straw: Tube,
-    bg: Bucket,
+    bucket: Bucket,
+    bg: Bg,
     undo: Undo,
     redo: Redo,
     clear: Clear,

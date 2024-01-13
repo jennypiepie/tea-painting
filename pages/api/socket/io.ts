@@ -25,6 +25,7 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIo) => {
         res.socket.server.io = io;
 
         const rooms: RoomInfo[] = [];
+        const exeMap = new Map();
 
         io.on('connection', (socket) => {
             const getRoomId = () => {
@@ -43,34 +44,44 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIo) => {
             })
 
             socket.on("create_room", (size) => {
+                console.log(size);
+
                 let roomId: string;
                 do {
                     roomId = getRandomString();
                 } while (rooms.some(room => room.roomId === roomId));
-                const newRoom = {
+                rooms.push({
                     roomId,
                     width: size.width,
                     height: size.height
-                };
-                rooms.push(newRoom);
-                socket.emit('created', newRoom);
+                });
+
+                io.emit('get_rooms', rooms);
+                socket.emit('created', roomId);
             });
 
             socket.on("join_room", (roomId) => {
-                if (getRoomId() !== socket.id) socket.leave(getRoomId());
-                const room = rooms.find(room => room.roomId === roomId);
-                if (!!room) {
-                    socket.join(roomId);
-                    socket.emit("room_exist", { exist: true, ...room });
+                if (![...socket.rooms].includes(roomId)) {
+                    if (getRoomId() !== socket.id) socket.leave(getRoomId());
+                    if (rooms.some(room => room.roomId === roomId)) {
+                        socket.join(roomId);
+                    }
                 } else {
-                    socket.emit("room_exist", { exist: false });
+                    socket.emit('initial_state', exeMap.get(roomId) || []);
                 }
             });
 
             socket.on("execute", (execution) => {
+                const roomId = getRoomId();
                 socket.broadcast
-                    .to(getRoomId())
+                    .to(roomId)
                     .emit("execute_receive", execution);
+
+                if (exeMap.has(roomId)) {
+                    exeMap.get(roomId).push(execution);
+                } else {
+                    exeMap.set(roomId, [execution]);
+                }
             })
         })
 

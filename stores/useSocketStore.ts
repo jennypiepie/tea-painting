@@ -2,23 +2,33 @@ import { Socket, io } from "socket.io-client";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
 
+interface RoomInfo {
+    roomId: string;
+    width: number;
+    height: number;
+}
+
 interface Point {
     x: number,
     y: number
 }
 
 export interface Execution {
-    type: "Draw" | "Eraser" | "Undo" | "Redo" | "BgColor" | "Clear";
+    type: "Draw" | "Eraser" | "Undo" | "Redo" | "BgColor" | "Clear" | "Bucket";
     points?: Point[];
     color?: string;
     lineWidth?: number;
+    point?: Point;
+    colorArr?: number[];
 }
 
 interface ISocketStore {
     socket: Socket;
     isConnected: boolean;
     messageList: string[];
+    rooms: RoomInfo[],
     execution: Execution | null;
+    initial: any[];
 }
 const clientIO = io(`${process.env.NEXT_PUBLIC_URL}`, {
     path: '/api/socket/io',
@@ -29,7 +39,9 @@ const initialState: ISocketStore = {
     socket: clientIO,
     isConnected: false,
     messageList: [],
+    rooms: [],
     execution: null,
+    initial: [],
 }
 
 const mutations = (set: any, get: any) => {
@@ -45,9 +57,15 @@ const mutations = (set: any, get: any) => {
             const newList = [...get().messageList, `${username || ''},${message},${time}`];
             set({ messageList: newList });
         })
+        .on('get_rooms', (rooms: RoomInfo[]) => {
+            set({ rooms });
+        })
         .on('execute_receive', (execution) => {
             set({ execution });
         })
+        .on('initial_state', (initial) => {
+            set({ initial })
+        });
 
     return {
         sendMessage(data: any) {
@@ -55,6 +73,9 @@ const mutations = (set: any, get: any) => {
                 ...data
             })
         },
+        clearInitial() {
+            set({ initial: [] });
+        }
     };
 };
 

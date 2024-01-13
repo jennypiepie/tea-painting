@@ -20,7 +20,7 @@ const debounce = (func: Function, delay: number) => {
 
 export default function Canvas() {
     const sketchRef = useRef<Sketch>();
-    const { socket, execution } = useSocketStore();
+    const { socket, execution, initial, clearInitial } = useSocketStore();
     const { initSketch } = useSketchStore();
     const width = useAsyncStore(usePersistStore, state => state.width);
     const height = useAsyncStore(usePersistStore, state => state.height);
@@ -54,24 +54,48 @@ export default function Canvas() {
         return () => sketchRef.current?.destory();
     }, [width, height])
 
+    const execute = (exe: any) => {
+        sketchRef.current!.ctx.save();
+        sketchRef.current!.preCtx.save();
+        const { points, color, lineWidth, type, point, colorArr } = exe;
+        if (type === "Undo") {
+            sketchRef.current!.undo();
+        } else if (type === "Redo") {
+            sketchRef.current!.redo();
+        } else {
+            if (type === "BgColor") {
+                sketchRef.current!.setBg(color);
+            } else if (type === "Clear") {
+                sketchRef.current!.clear();
+            } else if (type === "Bucket") {
+                sketchRef.current!.fill(point.x, point.y, colorArr);
+            }
+            else {
+                sketchRef.current!.setPen({ type, color, lineWidth });
+                sketchRef.current!.draw(points!);
+            }
+            sketchRef.current!.pushUndo(exe);
+        }
+        sketchRef.current!.ctx.restore();
+        sketchRef.current!.preCtx.restore();
+    }
+
+
+    useEffect(() => {
+        if (initial.length !== 0 && !!sketchRef.current) {
+            initial.forEach(exe => {
+                execute(exe);
+            })
+        }
+
+        return () => {
+            clearInitial();
+        }
+    }, [initial.length, sketchRef.current])
+
     useEffect(() => {
         if (execution !== null && !!sketchRef.current) {
-            const { points, color, lineWidth, type } = execution;
-            if (type === "Undo") {
-                sketchRef.current.undo();
-            } else if (type === "Redo") {
-                sketchRef.current.redo();
-            } else {
-                if (type === "BgColor") {
-                    sketchRef.current.setBg(color);
-                } else if (type === "Clear") {
-                    sketchRef.current.clear();
-                } else {
-                    sketchRef.current.setPen({ type, color, lineWidth });
-                    sketchRef.current.draw(points!);
-                }
-                sketchRef.current.pushUndo(execution);
-            }
+            execute(execution);
         }
     }, [execution])
 
