@@ -5,18 +5,20 @@ import Canvas from "@/components/canvas";
 import Chat from "@/components/chat";
 import { useSocketStore } from "@/stores/useSocketStore";
 import { useEffect } from "react";
+import { redirect } from "next/navigation";
 
 function Room({ params }: { params: { roomId: string } }) {
-    const { socket, rooms } = useSocketStore();
+    const { socket } = useSocketStore();
 
     useEffect(() => {
-        socket.emit("join_room", params.roomId);
+        const data = JSON.parse(sessionStorage.getItem('persist-storage') || '');
+        const roomId = data.state.roomId;
+        if (!roomId || roomId !== params.roomId) {
+            redirect("/room");
+        } else {
+            socket.emit("join_room", params.roomId);
+        }
     }, [])
-
-
-    if (!rooms.some((room) => room.roomId === params.roomId)) {
-        return <div>room not exist</div>
-    }
 
     return (<>
         <Chat />

@@ -7,56 +7,56 @@ import { useState } from "react";
 import { useEffect } from 'react';
 
 function My() {
-    const { rooms, socket } = useSocketStore();
-    const { setSize } = usePersistStore();
+    const { socket } = useSocketStore();
+    const { setRoom } = usePersistStore();
 
+    const [roomId, setRoomId] = useState('');
     const [noRoom, setNoRoom] = useState(false);
     const router = useRouter();
 
     const createRoom = (width: number, height: number) => {
-        !!setSize && setSize(width, height);
         socket.emit("create_room", { width, height });
     }
 
-    const joinRoom = (roomId: string) => {
-        const room = rooms.find(room => room.roomId === roomId);
-        if (room) {
-            setNoRoom(false);
-            !!setSize && setSize(room.width, room.height);
-            router.push(`/room/${roomId}`);
-        } else {
-            setNoRoom(true);
-        }
+    const joinRoom = () => {
+        socket.emit("join_room", roomId);
     }
 
     useEffect(() => {
-        const roomCreated = (roomId: string) => {
-            router.push(`/room/${roomId}`);
+        const roomCreated = (res: any) => {
+            setRoom(res.width, res.height, res.roomId);
+            router.push(`/room/${res.roomId}`);
+        }
+
+        const roomJoined = (res: any) => {
+            if (res.exist) {
+                setNoRoom(false);
+                setRoom(res.width, res.height, res.roomId);
+                router.push(`/room/${res.roomId}`);
+            } else {
+                setNoRoom(true);
+            }
         }
         socket.on('created', roomCreated);
+        socket.on('room_exist', roomJoined);
+
         return () => {
             socket.off('created', roomCreated);
+            socket.off('room_exist', roomJoined);
         }
     }, [])
 
     return (
         <div>
-            {noRoom && <div>The roomId does not exist.create a new room?</div>}
+            <span>roomId: </span>
+            <input className="border" value={roomId} onChange={(e) => setRoomId(e.target.value)} />
+            {noRoom && <span>The roomId does not exist.create a new room?</span>}
+            <div onClick={joinRoom}>Join</div>
             <ul>
                 <li onClick={() => createRoom(1920, 1080)}>1920*1080</li>
                 <li onClick={() => createRoom(1080, 1920)}>1080*1920</li>
                 <li onClick={() => createRoom(800, 600)}>800*600</li>
             </ul>
-            <div className="flex bg-slate-200">
-                {rooms.map((room) => {
-                    return <div key={room.roomId}>
-                        <div className="w-28 h-28 bg-slate-400 rounded-lg m-4"
-                            onClick={() => joinRoom(room.roomId)}>
-                            {room.roomId}
-                        </div>
-                    </div>
-                })}
-            </div>
         </div>
     )
 }

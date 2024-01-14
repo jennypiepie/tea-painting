@@ -44,27 +44,28 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIo) => {
             })
 
             socket.on("create_room", (size) => {
-                console.log(size);
-
                 let roomId: string;
                 do {
                     roomId = getRandomString();
                 } while (rooms.some(room => room.roomId === roomId));
-                rooms.push({
+                const newRoom = {
                     roomId,
                     width: size.width,
                     height: size.height
-                });
-
-                io.emit('get_rooms', rooms);
-                socket.emit('created', roomId);
+                };
+                rooms.push(newRoom);
+                socket.emit('created', newRoom);
             });
 
             socket.on("join_room", (roomId) => {
                 if (![...socket.rooms].includes(roomId)) {
                     if (getRoomId() !== socket.id) socket.leave(getRoomId());
-                    if (rooms.some(room => room.roomId === roomId)) {
+                    const room = rooms.find(room => room.roomId === roomId);
+                    if (!!room) {
                         socket.join(roomId);
+                        socket.emit("room_exist", { exist: true, ...room });
+                    } else {
+                        socket.emit("room_exist", { exist: false });
                     }
                 } else {
                     socket.emit('initial_state', exeMap.get(roomId) || []);

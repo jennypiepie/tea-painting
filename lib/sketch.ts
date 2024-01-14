@@ -281,6 +281,7 @@ class Sketch {
         } else {
             const preState = this.state;
             this.ctx.save();
+            this.preCtx.save();
             this.setPen({
                 type: exe.type as "Draw" | "Eraser",
                 color: exe.color,
@@ -288,6 +289,7 @@ class Sketch {
             })
             this.draw(exe.points!);
             this.ctx.restore();
+            this.preCtx.restore();
             this.state = preState;
         }
     }
@@ -317,16 +319,17 @@ class Sketch {
         return copy.toDataURL();
     }
 
-    fill(x: number, y: number, replacementColor: number[], targetColor: number[] = [0, 0, 0, 0]) {
+    fill(x: number, y: number, replacementColor: number[]) {
         const imageData = this.ctx.getImageData(0, 0, this.width, this.height);
         const data = imageData.data;
         const width = imageData.width;
         const height = imageData.height;
         const stack = [[x, y]];
+        const targetColor = this.ctx.getImageData(x, y, 1, 1).data as unknown as number[];
         const getColorIndex = (x: number, y: number) => (y * width + x) * 4;
 
         const isColorMatch = (color1: number[], color2: number[]) => {
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < 4; i++) {
                 if (color1[i] !== color2[i]) {
                     return false;
                 }

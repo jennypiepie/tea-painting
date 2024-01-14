@@ -4,19 +4,22 @@ import { createJSONStorage, persist } from "zustand/middleware";
 interface IPersistStore {
     width: number;
     height: number;
+    roomId: string;
     name: string;
     setUser: (name: string) => void;
-    setSize: (width: number, height: number) => void;
+    setRoom: (width: number, height: number, roomId: string) => void;
 }
 
 export const usePersistStore = create<IPersistStore>()(persist(
     (set) => ({
         width: 1920,
         height: 1080,
+        roomId: '',
         name: '',
         setUser: (name: string) => set({ name }),
-        setSize: (width: number, height: number) => set(() => {
+        setRoom: (width: number, height: number, roomId: string) => set(() => {
             return {
+                roomId,
                 width,
                 height
             }
