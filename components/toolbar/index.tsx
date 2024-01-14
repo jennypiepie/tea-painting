@@ -6,16 +6,13 @@ import ToolbarItem from "./toolbarItem";
 import { useSketchStore } from "@/stores/useSketchStore";
 import { SketchState } from "@/lib/sketch";
 import { useSocketStore } from "@/stores/useSocketStore";
-import Cursor from "../cursor";
+import Dropper from "../dropper";
 
 
 export default function Toolbar() {
     const [state, setState] = useState<SketchState>("Draw");
     const [point, setPoint] = useState({ x: 0, y: 0 });
     const { socket } = useSocketStore();
-    // const [undoAble, setUndoAble] = useState(false);
-    // const [redoAble, setRedoAble] = useState(false);
-
     const { sketch } = useSketchStore();
 
 
@@ -34,16 +31,8 @@ export default function Toolbar() {
         socket.emit('execute', { type: 'Redo' });
     }
 
-    const setBg = () => {
-        const isChange = sketch?.setBg();
-        if (isChange) {
-            socket.emit('execute', { type: 'BgColor', color: sketch?.bgColor });
-            sketch?.pushUndo({ type: 'BgColor', color: sketch?.bgColor });
-        }
-    }
-
-    const straw = (x: number, y: number) => {
-        stateChange('Straw');
+    const drop = (x: number, y: number) => {
+        stateChange('Dropper');
         setPoint({ x, y });
     }
 
@@ -64,17 +53,16 @@ export default function Toolbar() {
     }
 
     return (<>
-        {state === 'Straw' && <Cursor point={point} />}
+        {state === 'Dropper' && <Dropper point={point} />}
         <div className="absolute z-10 select-none top-2 right-6">
             <Picker />
         </div>
-        <div className="absolute top-10 left-10 rounded-lg overflow-hidden text-sm text-white p-1 bg-stone-800 select-none z-10 cursor-pointer">
+        <div className="absolute top-10 left-10 rounded-lg overflow-hidden text-sm text-white p-1 bg-stone-800 select-none z-10 Dropper-pointer">
             <ToolbarItem type="drag" onClick={() => stateChange('Drag')} selected={state === "Drag"} scale={0.7} />
             <ToolbarItem type="draw" onClick={() => stateChange('Draw')} selected={state === "Draw"} />
             <ToolbarItem type="eraser" onClick={() => stateChange('Eraser')} selected={state === "Eraser"} scale={0.7} />
-            <ToolbarItem type="straw" onClick={(e) => straw(e.clientX, e.clientY)} selected={state === "Straw"} scale={0.7} />
+            <ToolbarItem type="dropper" onClick={(e) => drop(e.clientX, e.clientY)} selected={state === "Dropper"} scale={0.6} />
             <ToolbarItem type="bucket" onClick={() => stateChange('Bucket')} selected={state === "Bucket"} />
-            <ToolbarItem type="bg" onClick={setBg} scale={0.7} />
             <ToolbarItem type="undo" onClick={undo} />
             <ToolbarItem type="redo" onClick={redo} />
             <ToolbarItem type="clear" onClick={clear} />

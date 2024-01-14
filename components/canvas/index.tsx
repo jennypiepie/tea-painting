@@ -63,9 +63,7 @@ export default function Canvas() {
         } else if (type === "Redo") {
             sketchRef.current!.redo();
         } else {
-            if (type === "BgColor") {
-                sketchRef.current!.setBg(color);
-            } else if (type === "Clear") {
+            if (type === "Clear") {
                 sketchRef.current!.clear();
             } else if (type === "Bucket") {
                 sketchRef.current!.fill(point.x, point.y, colorArr);

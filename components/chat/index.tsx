@@ -5,6 +5,7 @@ import { useSocketStore } from "@/stores/useSocketStore";
 import { useAsyncStore } from "@/hooks/useAsyncStore";
 import { usePersistStore } from "@/stores/usePersistStore";
 import ChatItem from "./chatItem";
+import SVG from "../svgs";
 
 const dateFormat = (time: Date) => {
     // const day = time.getDate();
@@ -59,8 +60,14 @@ export default function Chat() {
                         onChange={(e) => setMessage(e.target.value)}
                     />
                 </div>
-                <div className="w-[50px] bg-green-400 ml-2 rounded-lg text-center">
-                    <button className="text-sm font-bold" onClick={handleSubmit}>Send</button>
+                <div className="w-14 h-6 bg-green-400 ml-2 rounded-lg cursor-pointer" onClick={handleSubmit}>
+                    {SVG.send({
+                        style: {
+                            width: '100%',
+                            height: '100%',
+                            fill: 'white',
+                        },
+                    })}
                 </div>
             </div>
         </div>

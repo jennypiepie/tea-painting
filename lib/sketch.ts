@@ -14,7 +14,7 @@ interface PenConfig {
     lineWidth?: number;
 }
 
-export type SketchState = "Draw" | "Drag" | "Eraser" | "Straw" | "Bucket";
+export type SketchState = "Draw" | "Drag" | "Eraser" | "Dropper" | "Bucket";
 
 class Sketch {
     canvas: HTMLCanvasElement;
@@ -35,8 +35,7 @@ class Sketch {
     dpr: number;
     undoStack: Execution[];
     redoStack: Execution[];
-    bgColor: string;
-    strawColor: string;
+    dropperColor: string;
 
     constructor(socket: Socket) {
         this.canvas = document.getElementById('canvas')! as HTMLCanvasElement;
@@ -62,8 +61,7 @@ class Sketch {
         this.preCtx.scale(this.dpr, this.dpr);
         this.undoStack = [];
         this.redoStack = [];
-        this.bgColor = 'rgba(0,0,0,1.0)';
-        this.strawColor = 'rgba(255,255,255,1.0)';
+        this.dropperColor = 'rgba(255,255,255,1.0)';
 
         this.preview.addEventListener('mousedown', (e) => {
             this.mouseDown(e)
@@ -147,19 +145,19 @@ class Sketch {
         }
     }
 
-    cursorMove(e: MouseEvent) {
+    dropperMove(e: MouseEvent) {
         const { x, y } = this.getPoint(e);
         const pixel = this.ctx.getImageData(x * this.dpr, y * this.dpr, 1, 1);
         const arr = pixel.data;
         const a = Math.round(arr[3] / 255 * 100) / 100;
-        this.strawColor = `rgba(${arr[0]},${arr[1]},${arr[2]},${a})`;
-        eventEmitter.emit('straw', this.strawColor);
+        this.dropperColor = `rgba(${arr[0]},${arr[1]},${arr[2]},${a})`;
+        eventEmitter.emit('drop', this.dropperColor);
     }
 
-    cursorUp(e: MouseEvent) {
-        if ((e.target as HTMLElement).id !== 'cursor' || this.strawColor === 'rgba(0,0,0,0)') return;
-        eventEmitter.emit('colorChange', 'rgba', this.strawColor);
-        this.setPen({ color: this.strawColor });
+    dropperrClick(e: MouseEvent) {
+        if ((e.target as HTMLElement).id !== 'dropper' || this.dropperColor === 'rgba(0,0,0,0)') return;
+        eventEmitter.emit('colorChange', 'rgba', this.dropperColor);
+        this.setPen({ color: this.dropperColor });
     }
 
     setPen(conf: PenConfig) {
@@ -240,7 +238,7 @@ class Sketch {
 
     changeState(state: SketchState) {
         this.state = state;
-        if (state === 'Straw') {
+        if (state === 'Dropper') {
             document.body.style.cursor = 'none';
         } else {
             document.body.style.cursor = '';
@@ -248,7 +246,7 @@ class Sketch {
     }
 
     undo() {
-        if (this.undoStack.length > 0 && this.redoStack.length < 5) {
+        if (this.undoStack.length > 0 && this.redoStack.length < 10) {
             this.redoStack.push(this.undoStack.pop()!);
             this.clear();
             this.undoStack.forEach((exe) => {
@@ -272,9 +270,7 @@ class Sketch {
     }
 
     execute(exe: Execution) {
-        if (exe.type === 'BgColor') {
-            this.setBg(exe.color);
-        } else if (exe.type === 'Clear') {
+        if (exe.type === 'Clear') {
             this.clear();
         } else if (exe.type === 'Bucket') {
             this.fill(exe.point!.x, exe.point!.y, exe.colorArr!);
@@ -294,29 +290,13 @@ class Sketch {
         }
     }
 
-    setBg(color?: string) {
-        if (!color && this.ctx.strokeStyle === this.bgColor) return false;
-        this.bgColor = color || this.ctx.strokeStyle as string;
-        this.canvas.style.backgroundColor = this.bgColor;
-        return true;
-    }
-
     clear() {
         this.canvas.style.backgroundColor = '#ffffff';
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     save() {
-        const imageData = this.ctx.getImageData(0, 0, this.width, this.height);
-        const copy = this.canvas.cloneNode() as HTMLCanvasElement;
-        const copyCtx = copy.getContext('2d')!;
-
-        copyCtx.fillStyle = this.bgColor;
-        copyCtx.putImageData(imageData, 0, 0);
-        copyCtx.globalCompositeOperation = 'destination-over';
-        copyCtx.fillRect(0, 0, this.width, this.height);
-
-        return copy.toDataURL();
+        return this.canvas.toDataURL();
     }
 
     fill(x: number, y: number, replacementColor: number[]) {

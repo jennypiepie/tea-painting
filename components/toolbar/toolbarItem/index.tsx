@@ -5,10 +5,11 @@ interface IToolbarProps {
     type: string;
     scale?: number;
     selected?: boolean;
+    able?: boolean;
     onClick: (e: any) => void;
 }
 
-export default function ToolbarItem({ onClick, type, scale = 0.8, selected = false }: IToolbarProps) {
+export default function ToolbarItem({ onClick, type, scale = 0.8, selected = false, able = true }: IToolbarProps) {
 
     return (
         <div
@@ -17,7 +18,10 @@ export default function ToolbarItem({ onClick, type, scale = 0.8, selected = fal
         >
             {SVG[type as keyof typeof SVG]({
                 style: {
-                    width: '100%', height: '100%', fill: selected ? 'black' : 'white', transform: `scale(${scale})`
+                    width: '100%',
+                    height: '100%',
+                    fill: selected ? 'black' : able ? 'white' : 'gray',
+                    transform: `scale(${scale})`
                 }
             })}
         </div>
