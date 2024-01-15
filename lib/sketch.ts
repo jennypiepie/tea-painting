@@ -63,22 +63,13 @@ class Sketch {
         this.redoStack = [];
         this.dropperColor = 'rgba(255,255,255,1.0)';
 
-        this.preview.addEventListener('mousedown', (e) => {
-            this.mouseDown(e)
-        })
-        this.preview.addEventListener('mousemove', (e) => {
-            this.mouseMove(e)
-        })
-        this.preview.addEventListener('mouseup', (e) => {
-            this.mouseUp(e)
-        })
-
-        this.preview.addEventListener("click", (e) => {
-            this.click(e);
-        });
+        this.preview.addEventListener('mousedown', this.mouseDown);
+        this.preview.addEventListener('mousemove', this.mouseMove);
+        this.preview.addEventListener('mouseup', this.mouseUp);
+        this.preview.addEventListener("click", this.click);
     }
 
-    click(e: MouseEvent) {
+    click = (e: MouseEvent) => {
         if (this.state === "Bucket") {
             const { x, y } = this.getPoint(e);
             let arr = [];
@@ -101,7 +92,7 @@ class Sketch {
         }
     }
 
-    mouseDown(e: MouseEvent) {
+    mouseDown = (e: MouseEvent) => {
         if (this.state === "Bucket") return;
         if (this.state === "Drag") {
             this.dragStart = { x: e.x, y: e.y };
@@ -113,7 +104,7 @@ class Sketch {
         this.isMouseDown = true;
     }
 
-    mouseMove(e: MouseEvent) {
+    mouseMove = (e: MouseEvent) => {
         if (!this.isMouseDown) return;
         const { x, y } = this.getPoint(e);
         if (this.state === "Drag") {
@@ -135,14 +126,16 @@ class Sketch {
         }
     }
 
-    mouseUp(e: MouseEvent) {
+    mouseUp = (e: MouseEvent) => {
+        if (this.isMouseDown) {
+            if (this.state === "Drag") {
+                this.tranlated = this.offset;
+            }
+            if (this.state === "Draw" || this.state === "Eraser") {
+                this.end();
+            }
+        }
         this.isMouseDown = false;
-        if (this.state === "Drag") {
-            this.tranlated = this.offset;
-        }
-        if (this.state === "Draw" || this.state === "Eraser") {
-            this.end();
-        }
     }
 
     dropperMove(e: MouseEvent) {
@@ -394,15 +387,10 @@ class Sketch {
 
 
     destory() {
-        this.preview.removeEventListener('mousedown', (e) => {
-            this.mouseDown(e)
-        })
-        this.preview.removeEventListener('mousemove', (e) => {
-            this.mouseMove(e)
-        })
-        this.preview.removeEventListener('mouseup', (e) => {
-            this.mouseUp(e)
-        })
+        this.preview.removeEventListener('mousedown', this.mouseDown);
+        this.preview.removeEventListener('mousemove', this.mouseMove);
+        this.preview.removeEventListener('mouseup', this.mouseUp);
+        this.preview.removeEventListener("click", this.click);
     }
 }
 

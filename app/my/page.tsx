@@ -19,7 +19,7 @@ function My() {
     }
 
     const joinRoom = () => {
-        socket.emit("join_room", roomId);
+        socket.emit("check", roomId);
     }
 
     useEffect(() => {

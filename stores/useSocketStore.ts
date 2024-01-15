@@ -63,7 +63,7 @@ const mutations = (set: any, get: any) => {
             })
         },
         clearInitial() {
-            set({ initial: [] });
+            set({ initial: null });
         }
     };
 };

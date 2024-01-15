@@ -80,16 +80,17 @@ export default function Canvas() {
 
 
     useEffect(() => {
-        if (initial.length !== 0 && !!sketchRef.current) {
+        if (initial && initial.length !== 0 && !!sketchRef.current) {
             initial.forEach(exe => {
                 execute(exe);
             })
+            clearInitial();
         }
 
         return () => {
             clearInitial();
         }
-    }, [initial.length, sketchRef.current])
+    }, [initial, sketchRef.current])
 
     useEffect(() => {
         if (execution !== null && !!sketchRef.current) {

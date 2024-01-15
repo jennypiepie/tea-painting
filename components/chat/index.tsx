@@ -60,7 +60,7 @@ export default function Chat() {
                         onChange={(e) => setMessage(e.target.value)}
                     />
                 </div>
-                <div className="w-14 h-6 bg-green-400 ml-2 rounded-lg cursor-pointer" onClick={handleSubmit}>
+                <div className="w-12 h-6 bg-green-400 ml-2 rounded-lg cursor-pointer" onClick={handleSubmit}>
                     {SVG.send({
                         style: {
                             width: '100%',

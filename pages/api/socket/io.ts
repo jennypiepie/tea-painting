@@ -57,19 +57,21 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIo) => {
                 socket.emit('created', newRoom);
             });
 
+            socket.on("check", (roomId) => {
+                const room = rooms.find(room => room.roomId === roomId);
+                if (!!room) {
+                    socket.emit("room_exist", { exist: true, ...room });
+                } else {
+                    socket.emit("room_exist", { exist: false });
+                }
+            })
+
             socket.on("join_room", (roomId) => {
                 if (![...socket.rooms].includes(roomId)) {
                     if (getRoomId() !== socket.id) socket.leave(getRoomId());
-                    const room = rooms.find(room => room.roomId === roomId);
-                    if (!!room) {
-                        socket.join(roomId);
-                        socket.emit("room_exist", { exist: true, ...room });
-                    } else {
-                        socket.emit("room_exist", { exist: false });
-                    }
-                } else {
-                    socket.emit('initial_state', exeMap.get(roomId) || []);
+                    socket.join(roomId);
                 }
+                socket.emit('initial_state', exeMap.get(roomId)?.undo || []);
             });
 
             socket.on("execute", (execution) => {
@@ -79,9 +81,17 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIo) => {
                     .emit("execute_receive", execution);
 
                 if (exeMap.has(roomId)) {
-                    exeMap.get(roomId).push(execution);
+                    const stack = exeMap.get(roomId);
+                    if (execution.type === "Undo") {
+                        stack.redo.push(stack.undo.pop());
+                    } else if (execution.type === "Redo") {
+                        stack.undo.push(stack.redo.pop());
+                    } else {
+                        exeMap.get(roomId).undo.push(execution);
+                        stack.redo = [];
+                    }
                 } else {
-                    exeMap.set(roomId, [execution]);
+                    exeMap.set(roomId, { undo: [execution], redo: [] });
                 }
             })
         })
