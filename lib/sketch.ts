@@ -14,7 +14,7 @@ interface PenConfig {
     lineWidth?: number;
 }
 
-export type SketchState = "Draw" | "Drag" | "Eraser" | "Dropper" | "Bucket";
+export type SketchState = "Draw" | "Drag" | "Rotate" | "Eraser" | "Dropper" | "Bucket";
 
 class Sketch {
     canvas: HTMLCanvasElement;
@@ -36,6 +36,10 @@ class Sketch {
     undoStack: Execution[];
     redoStack: Execution[];
     dropperColor: string;
+    center: Point;
+    rotateStart: number;
+    rotated: number;
+    rotate: number;
 
     constructor(socket: Socket) {
         this.canvas = document.getElementById('canvas')! as HTMLCanvasElement;
@@ -53,8 +57,8 @@ class Sketch {
         this.points = [];
         this.state = 'Draw';
         this.dragStart = { x: 0, y: 0 };
-        this.tranlated = { x: -this.width / 2, y: -this.height / 2 };;
-        this.offset = { x: 0, y: 0 };
+        this.tranlated = { x: -this.width / 2, y: -this.height / 2 };
+        this.offset = { x: -this.width / 2, y: -this.height / 2 };
         this.isMouseDown = false;
         this.dpr = window.devicePixelRatio;
         this.ctx.scale(this.dpr, this.dpr);
@@ -62,11 +66,34 @@ class Sketch {
         this.undoStack = [];
         this.redoStack = [];
         this.dropperColor = 'rgba(255,255,255,1.0)';
+        this.center = { x: 0, y: 0 };
+        this.rotateStart = 0;
+        this.rotate = 0;
+        this.rotated = 0;
 
         this.preview.addEventListener('mousedown', this.mouseDown);
         this.preview.addEventListener('mousemove', this.mouseMove);
         this.preview.addEventListener('mouseup', this.mouseUp);
         this.preview.addEventListener("click", this.click);
+        this.preview.addEventListener('wheel', this.wheel);
+    }
+
+    wheel = (e: WheelEvent) => {
+        const delta = e.deltaY;
+        const maxScale = 5;
+        const minScale = 0.1;
+        if (delta > 0) {
+            this.scale *= 1.05;
+            if (this.scale > maxScale) {
+                this.scale = maxScale;
+            }
+        } else {
+            this.scale *= 0.97;
+            if (this.scale < minScale) {
+                this.scale = minScale;
+            }
+        }
+        this.container.style.transform = `translate(${this.offset.x}px, ${this.offset.y}px) scale(${this.scale}) rotate(${this.rotate}rad)`;
     }
 
     click = (e: MouseEvent) => {
@@ -97,6 +124,12 @@ class Sketch {
         if (this.state === "Drag") {
             this.dragStart = { x: e.x, y: e.y };
         }
+        if (this.state === "Rotate") {
+            this.center = this.getCenter();
+            const dx = e.clientX - this.center.x;
+            const dy = this.center.y - e.clientY;
+            this.rotateStart = Math.atan2(dy, dx);
+        }
         if (this.state === "Draw" || this.state === "Eraser") {
             const { x, y } = this.getPoint(e);
             this.points.push({ x, y });
@@ -113,7 +146,15 @@ class Sketch {
                 y: e.y - this.dragStart.y + this.tranlated.y,
             }
             this.container.style.transform =
-                `translate(${this.offset.x}px, ${this.offset.y}px) scale(${this.scale})`;
+                `translate(${this.offset.x}px, ${this.offset.y}px) scale(${this.scale}) rotate(${this.rotate}rad)`;
+        }
+        if (this.state === "Rotate") {
+            const dx = e.clientX - this.center.x;
+            const dy = this.center.y - e.clientY;
+            const end = Math.atan2(dy, dx);
+            this.rotate = this.rotateStart - end + this.rotated;
+            this.container.style.transform =
+                `translate(${this.offset.x}px, ${this.offset.y}px) scale(${this.scale}) rotate(${this.rotate}rad)`;
         }
         if (this.state === "Draw") {
             this.points.push({ x, y });
@@ -127,15 +168,17 @@ class Sketch {
     }
 
     mouseUp = (e: MouseEvent) => {
-        if (this.isMouseDown) {
-            if (this.state === "Drag") {
-                this.tranlated = this.offset;
-            }
-            if (this.state === "Draw" || this.state === "Eraser") {
-                this.end();
-            }
-        }
         this.isMouseDown = false;
+        if (this.state === "Drag") {
+            this.tranlated = this.offset;
+        }
+        if (this.state === "Rotate") {
+            this.rotated = this.rotate;
+        }
+        if (this.state === "Draw" || this.state === "Eraser") {
+            this.points.length > 1 && this.end();
+            this.points.length = 0;
+        }
     }
 
     dropperMove(e: MouseEvent) {
@@ -199,7 +242,6 @@ class Sketch {
             color: this.ctx.strokeStyle as string,
             lineWidth: this.ctx.lineWidth
         })
-        this.points.length = 0;
     }
 
     pushUndo(exe: Execution) {
@@ -219,6 +261,16 @@ class Sketch {
         const rect = this.canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) / this.scale / this.dpr;
         const y = (e.clientY - rect.top) / this.scale / this.dpr;
+        return {
+            x,
+            y
+        }
+    }
+
+    getCenter() {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
         return {
             x,
             y
@@ -391,6 +443,7 @@ class Sketch {
         this.preview.removeEventListener('mousemove', this.mouseMove);
         this.preview.removeEventListener('mouseup', this.mouseUp);
         this.preview.removeEventListener("click", this.click);
+        this.preview.removeEventListener('wheel', this.wheel);
     }
 }
 

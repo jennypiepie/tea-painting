@@ -59,6 +59,7 @@ export default function Toolbar() {
         </div>
         <div className="absolute top-10 left-10 rounded-lg overflow-hidden text-sm text-white p-1 bg-stone-800 select-none z-10 Dropper-pointer">
             <ToolbarItem type="drag" onClick={() => stateChange('Drag')} selected={state === "Drag"} scale={0.7} />
+            <ToolbarItem type="rotate" onClick={() => stateChange('Rotate')} selected={state === "Rotate"} scale={0.9} />
             <ToolbarItem type="draw" onClick={() => stateChange('Draw')} selected={state === "Draw"} />
             <ToolbarItem type="eraser" onClick={() => stateChange('Eraser')} selected={state === "Eraser"} scale={0.7} />
             <ToolbarItem type="dropper" onClick={(e) => drop(e.clientX, e.clientY)} selected={state === "Dropper"} scale={0.6} />

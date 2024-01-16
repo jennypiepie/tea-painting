@@ -12,6 +12,7 @@ function My() {
 
     const [roomId, setRoomId] = useState('');
     const [noRoom, setNoRoom] = useState(false);
+    const [visible, setVisible] = useState(false);
     const router = useRouter();
 
     const createRoom = (width: number, height: number) => {
@@ -47,16 +48,30 @@ function My() {
     }, [])
 
     return (
-        <div>
-            <span>roomId: </span>
-            <input className="border" value={roomId} onChange={(e) => setRoomId(e.target.value)} />
-            {noRoom && <span>The roomId does not exist.create a new room?</span>}
-            <div onClick={joinRoom}>Join</div>
-            <ul>
-                <li onClick={() => createRoom(1920, 1080)}>1920*1080</li>
-                <li onClick={() => createRoom(1080, 1920)}>1080*1920</li>
-                <li onClick={() => createRoom(800, 600)}>800*600</li>
-            </ul>
+        <div className="w-screen h-screen bg-slate-100">
+            <div className="absolute-center flex w-64 bg-green-400 p-2 rounded-2xl justify-between">
+                <span className="text-lg font-bold">roomId: </span>
+                <input className="w-28 bg-green-400 outline-none"
+                    value={roomId}
+                    onChange={(e) => setRoomId(e.target.value)}
+                />
+                <div className="cursor-pointer bg-stone-800 text-white w-12 flex justify-center items-center rounded-xl font-semibold"
+                    onClick={joinRoom}>
+                    Join
+                </div>
+            </div>
+            {noRoom && <p>The roomId does not exist.create a new room?</p>}
+            <div className="w-24 h-10 bg-stone-800 text-white font-bold
+            flex justify-center items-center rounded-3xl"
+                onClick={() => setVisible(true)}
+            >
+                Create
+            </div>
+            {visible && <ul className="bg-stone-200 w-32 p-2 rounded-xl cursor-pointer">
+                <li className="rounded py-1 px-2 hover:text-white hover:bg-stone-800" onClick={() => createRoom(1920, 1080)}>1920*1080</li>
+                <li className="rounded py-1 px-2 hover:text-white hover:bg-stone-800" onClick={() => createRoom(1080, 1920)}>1080*1920</li>
+                <li className="rounded py-1 px-2 hover:text-white hover:bg-stone-800" onClick={() => createRoom(800, 600)}>800*600</li>
+            </ul>}
         </div>
     )
 }
