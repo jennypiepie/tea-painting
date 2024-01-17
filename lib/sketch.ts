@@ -2,8 +2,9 @@ import { Execution } from "@/stores/useSocketStore";
 import { Socket } from "socket.io-client";
 import eventEmitter from "./eventEmitter";
 import { rgba2arr, hex2rgba } from '../utils/colorConvert';
+import Input from "./input";
 
-interface Point {
+export interface Point {
     x: number,
     y: number
 }
@@ -22,24 +23,17 @@ class Sketch {
     container: HTMLDivElement;
     width: number;
     height: number;
-    scale: number;
     socket: Socket;
     ctx: CanvasRenderingContext2D;
     preCtx: CanvasRenderingContext2D;
     points: Point[];
     state: SketchState;
-    dragStart: Point;
-    tranlated: Point;
-    offset: Point;
     isMouseDown: boolean;
     dpr: number;
     undoStack: Execution[];
     redoStack: Execution[];
     dropperColor: string;
-    center: Point;
-    rotateStart: number;
-    rotated: number;
-    rotate: number;
+    input: Input
 
     constructor(socket: Socket) {
         this.canvas = document.getElementById('canvas')! as HTMLCanvasElement;
@@ -48,7 +42,6 @@ class Sketch {
         this.canvas.parentElement!.appendChild(this.preview);
         this.width = this.canvas.width;
         this.height = this.canvas.height;
-        this.scale = 0.5;
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true, })!;
         this.preCtx = this.preview.getContext('2d')!;
         this.ctx.lineJoin = this.preCtx.lineJoin = 'round';
@@ -56,9 +49,6 @@ class Sketch {
         this.socket = socket;
         this.points = [];
         this.state = 'Draw';
-        this.dragStart = { x: 0, y: 0 };
-        this.tranlated = { x: -this.width / 2, y: -this.height / 2 };
-        this.offset = { x: -this.width / 2, y: -this.height / 2 };
         this.isMouseDown = false;
         this.dpr = window.devicePixelRatio;
         this.ctx.scale(this.dpr, this.dpr);
@@ -66,34 +56,13 @@ class Sketch {
         this.undoStack = [];
         this.redoStack = [];
         this.dropperColor = 'rgba(255,255,255,1.0)';
-        this.center = { x: 0, y: 0 };
-        this.rotateStart = 0;
-        this.rotate = 0;
-        this.rotated = 0;
+        this.input = new Input({ container: this.container, width: this.width, height: this.height });
 
         this.preview.addEventListener('mousedown', this.mouseDown);
         this.preview.addEventListener('mousemove', this.mouseMove);
         this.preview.addEventListener('mouseup', this.mouseUp);
         this.preview.addEventListener("click", this.click);
-        this.preview.addEventListener('wheel', this.wheel);
-    }
-
-    wheel = (e: WheelEvent) => {
-        const delta = e.deltaY;
-        const maxScale = 5;
-        const minScale = 0.1;
-        if (delta > 0) {
-            this.scale *= 1.05;
-            if (this.scale > maxScale) {
-                this.scale = maxScale;
-            }
-        } else {
-            this.scale *= 0.97;
-            if (this.scale < minScale) {
-                this.scale = minScale;
-            }
-        }
-        this.container.style.transform = `translate(${this.offset.x}px, ${this.offset.y}px) scale(${this.scale}) rotate(${this.rotate}rad)`;
+        this.preview.addEventListener('wheel', this.input.wheel);
     }
 
     click = (e: MouseEvent) => {
@@ -122,13 +91,10 @@ class Sketch {
     mouseDown = (e: MouseEvent) => {
         if (this.state === "Bucket") return;
         if (this.state === "Drag") {
-            this.dragStart = { x: e.x, y: e.y };
+            this.input.dragMouseDown(e);
         }
         if (this.state === "Rotate") {
-            this.center = this.getCenter();
-            const dx = e.clientX - this.center.x;
-            const dy = this.center.y - e.clientY;
-            this.rotateStart = Math.atan2(dy, dx);
+            this.input.RotateMouseDown(e);
         }
         if (this.state === "Draw" || this.state === "Eraser") {
             const { x, y } = this.getPoint(e);
@@ -141,20 +107,10 @@ class Sketch {
         if (!this.isMouseDown) return;
         const { x, y } = this.getPoint(e);
         if (this.state === "Drag") {
-            this.offset = {
-                x: e.x - this.dragStart.x + this.tranlated.x,
-                y: e.y - this.dragStart.y + this.tranlated.y,
-            }
-            this.container.style.transform =
-                `translate(${this.offset.x}px, ${this.offset.y}px) scale(${this.scale}) rotate(${this.rotate}rad)`;
+            this.input.dragMouseMove(e);
         }
         if (this.state === "Rotate") {
-            const dx = e.clientX - this.center.x;
-            const dy = this.center.y - e.clientY;
-            const end = Math.atan2(dy, dx);
-            this.rotate = this.rotateStart - end + this.rotated;
-            this.container.style.transform =
-                `translate(${this.offset.x}px, ${this.offset.y}px) scale(${this.scale}) rotate(${this.rotate}rad)`;
+            this.input.rotateMouseMove(e);
         }
         if (this.state === "Draw") {
             this.points.push({ x, y });
@@ -170,10 +126,10 @@ class Sketch {
     mouseUp = (e: MouseEvent) => {
         this.isMouseDown = false;
         if (this.state === "Drag") {
-            this.tranlated = this.offset;
+            this.input.dragMouseUp();
         }
         if (this.state === "Rotate") {
-            this.rotated = this.rotate;
+            this.input.rotateMouseUp();
         }
         if (this.state === "Draw" || this.state === "Eraser") {
             this.points.length > 1 && this.end();
@@ -259,8 +215,8 @@ class Sketch {
 
     getPoint(e: MouseEvent) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / this.scale / this.dpr;
-        const y = (e.clientY - rect.top) / this.scale / this.dpr;
+        const x = (e.clientX - rect.left) / this.input.scale / this.dpr;
+        const y = (e.clientY - rect.top) / this.input.scale / this.dpr;
         return {
             x,
             y
@@ -275,10 +231,6 @@ class Sketch {
             x,
             y
         }
-    }
-
-    setScale(scale: number) {
-        this.scale = scale;
     }
 
     changeState(state: SketchState) {
@@ -443,7 +395,7 @@ class Sketch {
         this.preview.removeEventListener('mousemove', this.mouseMove);
         this.preview.removeEventListener('mouseup', this.mouseUp);
         this.preview.removeEventListener("click", this.click);
-        this.preview.removeEventListener('wheel', this.wheel);
+        this.preview.removeEventListener('wheel', this.input.wheel);
     }
 }
 
